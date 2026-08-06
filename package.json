@@ -1,0 +1,54 @@
+{
+	"name": "@underactive/pi-topping-statusline",
+	"version": "0.1.0",
+	"description": "oh-my-pi's powerline statusline as a pi extension with some customizations",
+	"keywords": [
+		"pi-package",
+		"pi-extension"
+	],
+	"license": "MIT",
+	"author": "Eric Sison",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/underactive/pi-topping-statusline.git"
+	},
+	"bugs": {
+		"url": "https://github.com/underactive/pi-topping-statusline/issues"
+	},
+	"homepage": "https://github.com/underactive/pi-topping-statusline#readme",
+	"type": "module",
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"files": [
+		"src",
+		"index.ts",
+		"README.md",
+		"LICENSE"
+	],
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"test": "node --import ./src/tests/ts-resolve.ts --test src/tests/*.test.ts"
+	},
+	"pi": {
+		"extensions": [
+			"./index.ts"
+		],
+		"image": "https://raw.githubusercontent.com/underactive/pi-topping-statusline/main/media/poster.png"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-ai": "*",
+		"@earendil-works/pi-coding-agent": "*",
+		"@earendil-works/pi-tui": "*"
+	},
+	"devDependencies": {
+		"@earendil-works/pi-ai": "0.80.10",
+		"@earendil-works/pi-coding-agent": "0.80.10",
+		"@earendil-works/pi-tui": "0.80.10",
+		"@types/node": "^22.0.0",
+		"typescript": "^5.7.0"
+	}
+}
