@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1]
+
+### Changed
+
+- Derive `SegmentIncludes` once in `resolveEffectiveSettings` instead of per-render
+- Have `setSymbolPreset` return the previous preset so the settings preview restores the live preset correctly
+- Measure `clampPathLength` budgets in display cells via `visibleWidth` to match layout.ts, with a grapheme-aware tail fallback that cannot split surrogate pairs
+- Extract `shrinkPathSegment` from `buildStatusLine` and name its width constants
+- Move `isBorderRow`/`stripRedundantStats` into `src/footer.ts` as tested pure functions
+- Share box-row painting between the editor box and the settings preview via `src/box.ts`
+
+### Removed
+
+- Drop unused `StatusColor` roles, 16 icon keys, and `thinking.autoPending` left over from the oh-my-pi port
+
 ## [0.1.0]
 
 Initial release
