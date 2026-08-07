@@ -44,24 +44,8 @@ export interface StatusSymbols {
 		folder: string;
 		scratchFolder: string;
 		worktree: string;
-		git: string;
 		branch: string;
 		pr: string;
-		tokens: string;
-		context: string;
-		cost: string;
-		time: string;
-		ghost: string;
-		agents: string;
-		job: string;
-		cache: string;
-		input: string;
-		output: string;
-		throughput: string;
-		host: string;
-		session: string;
-		auto: string;
-		fast: string;
 	};
 	thinking: {
 		minimal: string;
@@ -70,7 +54,6 @@ export interface StatusSymbols {
 		high: string;
 		xhigh: string;
 		max: string;
-		autoPending: string;
 	};
 }
 
@@ -96,24 +79,8 @@ const UNICODE_SYMBOLS: StatusSymbols = {
 		folder: "📁",
 		scratchFolder: "🗑",
 		worktree: "🌳",
-		git: "⎇",
 		branch: "⑂",
 		pr: "⤴",
-		tokens: "🪙",
-		context: "◫",
-		cost: "💲",
-		time: "⏱",
-		ghost: "👻",
-		agents: "👥",
-		job: "⚙",
-		cache: "💾",
-		input: "⤵",
-		output: "⤴",
-		throughput: "⚡",
-		host: "🖥",
-		session: "🆔",
-		auto: "⟲",
-		fast: "⚡",
 	},
 	thinking: {
 		minimal: "○ min",
@@ -122,7 +89,6 @@ const UNICODE_SYMBOLS: StatusSymbols = {
 		high: "◒ high",
 		xhigh: "◕ xhigh",
 		max: "◉ max",
-		autoPending: "⟳",
 	},
 };
 
@@ -148,24 +114,8 @@ const NERD_SYMBOLS: StatusSymbols = {
 		folder: "\uf115",
 		scratchFolder: "\uf014",
 		worktree: "\uf0e8",
-		git: "\uf1d3",
 		branch: "\uf126",
 		pr: "\uea64",
-		tokens: "\ue26b",
-		context: "\ue70f",
-		cost: "\uf155",
-		time: "\uf017",
-		ghost: "\u{f02a0}",
-		agents: "\uf0c0",
-		job: "\uf013",
-		cache: "\uf1c0",
-		input: "\uf090",
-		output: "\uf08b",
-		throughput: "⚡",
-		host: "\uf109",
-		session: "\u{f0051}",
-		auto: "\u{f0068}",
-		fast: "\uf0e7",
 	},
 	thinking: {
 		minimal: "\u{f0a9e} min",
@@ -174,7 +124,6 @@ const NERD_SYMBOLS: StatusSymbols = {
 		high: "\u{f0aa3} high",
 		xhigh: "\u{f0aa5} xhigh",
 		max: "\u{f06d} max",
-		autoPending: "\u{f074}",
 	},
 };
 
@@ -200,24 +149,8 @@ const ASCII_SYMBOLS: StatusSymbols = {
 		folder: "[D]",
 		scratchFolder: "[T]",
 		worktree: "[wt]",
-		git: "git:",
 		branch: "@",
 		pr: "PR",
-		tokens: "tok:",
-		context: "ctx:",
-		cost: "$",
-		time: "t:",
-		ghost: "@",
-		agents: "AG",
-		job: "bg",
-		cache: "cache",
-		input: "in:",
-		output: "out:",
-		throughput: "tok/s:",
-		host: "host",
-		session: "id",
-		auto: "[A]",
-		fast: ">>",
 	},
 	thinking: {
 		minimal: "[min]",
@@ -226,7 +159,6 @@ const ASCII_SYMBOLS: StatusSymbols = {
 		high: "[high]",
 		xhigh: "[xhigh]",
 		max: "[max]",
-		autoPending: "[~]",
 	},
 };
 
@@ -260,7 +192,6 @@ export type StatusColor =
 	| "muted"
 	| "dim"
 	| "text"
-	| "thinkingHigh"
 	| "statusLineSep"
 	| "statusLineModel"
 	| "statusLinePath"
@@ -268,13 +199,9 @@ export type StatusColor =
 	| "statusLineGitDirty"
 	| "statusLineContext"
 	| "statusLineContextElevated"
-	| "statusLineSpend"
 	| "statusLineStaged"
 	| "statusLineDirty"
-	| "statusLineUntracked"
-	| "statusLineOutput"
-	| "statusLineCost"
-	| "statusLineSubagents";
+	| "statusLineUntracked";
 
 const FG_COLORS: Record<StatusColor, ColorValue> = {
 	accent: "#febc38",
@@ -284,7 +211,6 @@ const FG_COLORS: Record<StatusColor, ColorValue> = {
 	muted: "#777d88",
 	dim: "#5f6673",
 	text: "",
-	thinkingHigh: "#b281d6",
 	statusLineSep: 244,
 	statusLineModel: "#d787af",
 	statusLinePath: "#00afaf",
@@ -292,13 +218,9 @@ const FG_COLORS: Record<StatusColor, ColorValue> = {
 	statusLineGitDirty: "#d7af5f",
 	statusLineContext: "#8787af",
 	statusLineContextElevated: "#e07a1f",
-	statusLineSpend: "#5fafaf",
 	statusLineStaged: 70,
 	statusLineDirty: 178,
 	statusLineUntracked: 39,
-	statusLineOutput: 205,
-	statusLineCost: 205,
-	statusLineSubagents: "#febc38",
 };
 
 const STATUS_LINE_BG: ColorValue = "#121212";
@@ -391,9 +313,11 @@ class StatusTheme {
 	#fgCache = new Map<StatusColor, string>();
 	#bgAnsi: string | undefined;
 
-	setSymbolPreset(preset: SymbolPreset): void {
+	setSymbolPreset(preset: SymbolPreset): SymbolPreset {
+		const previous = this.#preset;
 		this.#preset = preset;
 		this.#symbols = SYMBOL_PRESETS[preset];
+		return previous;
 	}
 
 	get sep(): StatusSymbols["sep"] {

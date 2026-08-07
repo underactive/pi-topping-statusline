@@ -17,6 +17,40 @@ import type { EffectiveStatusLineSettings, SegmentContext, StatusLineSegmentId }
 
 const TRANSPARENT_BG_ANSI = "\x1b[49m";
 
+const MIN_PATH_WIDTH = 8;
+const MAX_SHRINK_PASSES = 8;
+const MIN_PATH_MAX_LENGTH = 4;
+
+/** Re-render the path segment narrower to absorb `overflow` cells; undefined when it cannot shrink. */
+function shrinkPathSegment(ctx: SegmentContext, currentContent: string, overflow: number): string | undefined {
+	const currentPathVW = visibleWidth(currentContent);
+	const shrinkable = currentPathVW - MIN_PATH_WIDTH;
+	if (shrinkable <= 0) return undefined;
+
+	const shrinkBy = Math.min(shrinkable, overflow);
+	const currentMaxLen = ctx.options.path.maxLength;
+	let newMaxLen = Math.max(MIN_PATH_MAX_LENGTH, Math.min(currentMaxLen, currentPathVW) - shrinkBy);
+	const pathCtx = (maxLen: number): SegmentContext => ({
+		...ctx,
+		options: { ...ctx.options, path: { ...ctx.options.path, maxLength: maxLen } },
+	});
+	let reRendered = renderSegment("path", pathCtx(newMaxLen));
+	if (!reRendered.visible || !reRendered.content) return undefined;
+
+	// maxLength governs path text, not icon prefix; iterate to compensate
+	for (let i = 0; i < MAX_SHRINK_PASSES; i++) {
+		const saved = currentPathVW - visibleWidth(reRendered.content);
+		if (saved >= shrinkBy) break;
+		const nextMaxLen = Math.max(MIN_PATH_MAX_LENGTH, newMaxLen - (shrinkBy - saved));
+		if (nextMaxLen >= newMaxLen) break;
+		newMaxLen = nextMaxLen;
+		const adjusted = renderSegment("path", pathCtx(newMaxLen));
+		if (!adjusted.visible || !adjusted.content) break;
+		reRendered = adjusted;
+	}
+	return reRendered.content;
+}
+
 export function buildStatusLine(
 	width: number,
 	ctx: SegmentContext,
@@ -84,34 +118,10 @@ export function buildStatusLine(
 		// Shrink path before dropping left segments — path is the only elastic segment
 		const pathIdx = leftSegIds.indexOf("path");
 		if (pathIdx >= 0 && totalWidth() > width) {
-			const overflow = totalWidth() - width;
-			const currentPathVW = visibleWidth(left[pathIdx]);
-			const minPathVW = 8;
-			const shrinkable = currentPathVW - minPathVW;
-			if (shrinkable > 0) {
-				const shrinkBy = Math.min(shrinkable, overflow);
-				const currentMaxLen = ctx.options.path.maxLength;
-				let newMaxLen = Math.max(4, Math.min(currentMaxLen, currentPathVW) - shrinkBy);
-				const pathCtx = (maxLen: number): SegmentContext => ({
-					...ctx,
-					options: { ...ctx.options, path: { ...ctx.options.path, maxLength: maxLen } },
-				});
-				let reRendered = renderSegment("path", pathCtx(newMaxLen));
-				if (reRendered.visible && reRendered.content) {
-					// maxLength governs path text, not icon prefix; iterate to compensate
-					for (let i = 0; i < 8; i++) {
-						const saved = currentPathVW - visibleWidth(reRendered.content);
-						if (saved >= shrinkBy) break;
-						const nextMaxLen = Math.max(4, newMaxLen - (shrinkBy - saved));
-						if (nextMaxLen >= newMaxLen) break;
-						newMaxLen = nextMaxLen;
-						const adjusted = renderSegment("path", pathCtx(newMaxLen));
-						if (!adjusted.visible || !adjusted.content) break;
-						reRendered = adjusted;
-					}
-					left[pathIdx] = reRendered.content;
-					leftWidth = leftGroupWidth(left);
-				}
+			const replacement = shrinkPathSegment(ctx, left[pathIdx], totalWidth() - width);
+			if (replacement !== undefined) {
+				left[pathIdx] = replacement;
+				leftWidth = leftGroupWidth(left);
 			}
 		}
 		const leftOverflowDropIndex = (): number => {

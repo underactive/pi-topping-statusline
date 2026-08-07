@@ -5,6 +5,7 @@
  * replaced with local hex math so this runs under any pi runtime.
  */
 import { stripVTControlCharacters } from "node:util";
+import { sliceByColumn, visibleWidth } from "@earendil-works/pi-tui";
 import { parseHex } from "./theme.js";
 
 export function formatNumber(n: number): string {
@@ -27,13 +28,14 @@ export function shortenPath(filePath: string, homeDir?: string): string {
 }
 
 /**
- * Clamp a path/label to `maxLen` by eliding middle components with `…`.
- * The first folder (after `~` or the root) and the basename survive longest;
- * middle components drop farthest-from-cwd first. Falls back to plain
- * left-truncation once even `…/basename` overflows.
+ * Clamp a path/label to `maxLen` display cells by eliding middle components
+ * with `…`. The first folder (after `~` or the root) and the basename survive
+ * longest; middle components drop farthest-from-cwd first. Falls back to plain
+ * left-truncation once even `…/basename` overflows. Widths are terminal cells
+ * (matching layout.ts's visibleWidth budgets), not UTF-16 units.
  */
 export function clampPathLength(pwd: string, maxLen: number): string {
-	if (pwd.length <= maxLen) return pwd;
+	if (visibleWidth(pwd) <= maxLen) return pwd;
 
 	const parts = pwd.split("/");
 	const last = parts.length - 1;
@@ -41,16 +43,17 @@ export function clampPathLength(pwd: string, maxLen: number): string {
 
 	for (let dropped = 1; dropped <= last - firstIdx - 1; dropped++) {
 		const candidate = [...parts.slice(0, firstIdx + 1), "…", ...parts.slice(firstIdx + 1 + dropped)].join("/");
-		if (candidate.length <= maxLen) return candidate;
+		if (visibleWidth(candidate) <= maxLen) return candidate;
 	}
 
 	// The first folder no longer fits: keep whatever remains closest to the cwd.
 	for (let start = firstIdx + 1; start <= last; start++) {
 		const candidate = `…/${parts.slice(start).join("/")}`;
-		if (candidate.length <= maxLen) return candidate;
+		if (visibleWidth(candidate) <= maxLen) return candidate;
 	}
 
-	return `…${pwd.slice(-Math.max(0, maxLen - 1))}`;
+	const tailWidth = Math.max(0, maxLen - 1);
+	return `…${sliceByColumn(pwd, visibleWidth(pwd) - tailWidth, tailWidth)}`;
 }
 
 /** Strip ANSI/VT escapes, map control chars to spaces, collapse whitespace. */

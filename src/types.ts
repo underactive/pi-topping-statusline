@@ -102,6 +102,7 @@ export interface EffectiveStatusLineSettings {
 	bottomRightSegments: StatusLineSegmentId[];
 	segmentOptions: StatusLineSegmentOptions;
 	rainbowBorder: boolean;
+	includes: SegmentIncludes;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

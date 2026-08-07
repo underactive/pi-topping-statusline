@@ -10,6 +10,7 @@ import { theme, type BorderStyle, type SymbolPreset } from "./theme.js";
 import type {
 	EffectiveStatusLineSettings,
 	FeedFormat,
+	SegmentIncludes,
 	StatusLineFeed,
 	StatusLineSegmentId,
 	StatusLineSegmentToggles,
@@ -131,6 +132,16 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 	if (seg.feedsBottomLeft) bottomLeftSegments.push("feeds");
 	if (seg.tokenRateBottomLeft) bottomLeftSegments.push("token_rate");
 
+	const feeds = settings.feeds ? sanitizeFeeds(settings.feeds) : [...DEFAULT_FEEDS];
+	const allSegments = [...leftSegments, ...rightSegments, ...bottomLeftSegments, ...bottomRightSegments];
+	const includes: SegmentIncludes = {
+		git: allSegments.includes("git"),
+		pr: allSegments.includes("pr"),
+		piStats: allSegments.includes("pi_stats"),
+		tokenRate: allSegments.includes("token_rate"),
+		feeds: allSegments.includes("feeds") ? feeds.map(feed => feed.customType) : [],
+	};
+
 	return {
 		transparent: settings.transparent ?? true,
 		separator: settings.separator ?? "powerline-thin",
@@ -141,11 +152,12 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 		bottomLeftSegments,
 		bottomRightSegments,
 		rainbowBorder: settings.rainbowBorder ?? true,
+		includes,
 		segmentOptions: {
 			model: { showModel: seg.model, showProvider: seg.provider, showThinking: seg.thinking },
 			path: { abbreviate: true, maxLength: 40, stripWorkPrefix: true },
 			context: { showBar: seg.contextBar, showStats: seg.contextStats },
-			feeds: settings.feeds ? sanitizeFeeds(settings.feeds) : [...DEFAULT_FEEDS],
+			feeds,
 		},
 	};
 }

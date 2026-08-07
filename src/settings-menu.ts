@@ -4,17 +4,11 @@
  * menu values, and the command registration.
  */
 import type { ExtensionAPI, ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
-import { visibleWidth } from "@earendil-works/pi-tui";
+import { makeBoxPainters, renderBoxRow } from "./box.js";
 import type { SegmentContextBuilder } from "./context.js";
 import { buildStatusLine } from "./layout.js";
 import { showMenu, type MenuSection, type MenuValue, type PreviewResult } from "./menu.js";
-import {
-	perimeterLength,
-	perimeterPosition,
-	RAINBOW_CYCLE_MS,
-	RAINBOW_FRAME_MS,
-	RainbowBorder,
-} from "./rainbow.js";
+import { RAINBOW_CYCLE_MS, RAINBOW_FRAME_MS, RainbowBorder } from "./rainbow.js";
 import {
 	applySettings,
 	BORDER_STYLES,
@@ -227,8 +221,7 @@ class StatusLinePreview {
 		// The theme singleton drives glyph lookups everywhere, so swap the
 		// symbol preset for this synchronous render only; the live bar behind
 		// the overlay keeps the applied preset.
-		const applied = this.#state.effective.symbols;
-		theme.setSymbolPreset(effective.symbols);
+		const applied = theme.setSymbolPreset(effective.symbols);
 		try {
 			const include: SegmentIncludes = {
 				git: true,
@@ -258,37 +251,21 @@ class StatusLinePreview {
 			};
 
 			const box = theme.getBox(effective.borderStyle);
-			const staticBorder = (s: string, _startCol: number, _row: number) => this.#uiTheme.fg("border", s);
 			// The preview box is three rows tall: top bar, side verticals, bottom bar.
 			const bottomIdx = 2;
-			const rainbow = new RainbowBorder((elapsedMs * 360) / RAINBOW_CYCLE_MS);
-			const perimeter = perimeterLength(boxWidth, bottomIdx);
-			const paint = (row: number, col: number, ch: string): string =>
-				rainbowOn
-					? rainbow.colorChar(ch, perimeterPosition(row, col, boxWidth, bottomIdx), perimeter)
-					: staticBorder(ch, col, row);
-			const horizRun = (row: number, startCol: number, count: number): string => {
-				let out = "";
-				for (let k = 0; k < count; k++) out += paint(row, startCol + k, box.horizontal);
-				return out;
-			};
-			const gapColor = (str: string, startCol: number, row: number): string =>
-				rainbowOn ? [...str].map((ch, k) => paint(row, startCol + k, ch)).join("") : staticBorder(str, startCol, row);
-			const row = (bar: string, rowIdx: number, left: string, right: string): string => {
-				const pad = Math.max(0, barWidth - visibleWidth(bar));
-				return (
-					paint(rowIdx, 0, left) +
-					horizRun(rowIdx, 1, 2) +
-					bar +
-					horizRun(rowIdx, 3 + visibleWidth(bar), pad + 2) +
-					paint(rowIdx, boxWidth - 1, right)
-				);
-			};
+			const painters = makeBoxPainters({
+				rainbowOn,
+				rainbow: new RainbowBorder((elapsedMs * 360) / RAINBOW_CYCLE_MS),
+				box,
+				width: boxWidth,
+				bottomIdx,
+				flat: s => this.#uiTheme.fg("border", s),
+			});
 			const top = buildStatusLine(
 				barWidth,
 				ctx,
 				effective,
-				gapColor,
+				painters.gapColor,
 				{
 					left: effective.leftSegments,
 					right: effective.rightSegments,
@@ -299,7 +276,7 @@ class StatusLinePreview {
 				barWidth,
 				ctx,
 				effective,
-				gapColor,
+				painters.gapColor,
 				{
 					left: effective.bottomLeftSegments,
 					right: effective.bottomRightSegments,
@@ -308,9 +285,11 @@ class StatusLinePreview {
 			);
 			return {
 				lines: [
-					row(top, 0, box.topLeft, box.topRight),
-					paint(1, 0, box.vertical) + " ".repeat(Math.max(0, boxWidth - 2)) + paint(1, boxWidth - 1, box.vertical),
-					row(bottom, bottomIdx, box.bottomLeft, box.bottomRight),
+					renderBoxRow(painters, top, 0, boxWidth, box.topLeft, box.topRight),
+					painters.paint(1, 0, box.vertical) +
+						" ".repeat(Math.max(0, boxWidth - 2)) +
+						painters.paint(1, boxWidth - 1, box.vertical),
+					renderBoxRow(painters, bottom, bottomIdx, boxWidth, box.bottomLeft, box.bottomRight),
 				],
 				// Keep the preview animated only while the rainbow is enabled;
 				// a static preview refreshes once and stops.

@@ -25,38 +25,15 @@ import {
 	type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
-import { visibleWidth } from "@earendil-works/pi-tui";
+import { makeBoxPainters, renderBoxRow } from "./src/box.js";
 import { SegmentContextBuilder } from "./src/context.js";
+import { isBorderRow, stripAnsi, stripRedundantStats } from "./src/footer.js";
 import { buildStatusLine } from "./src/layout.js";
-import {
-	perimeterLength,
-	perimeterPosition,
-	RAINBOW_DEG_PER_FRAME,
-	RAINBOW_FRAME_MS,
-	RainbowBorder,
-} from "./src/rainbow.js";
+import { RAINBOW_DEG_PER_FRAME, RAINBOW_FRAME_MS, RainbowBorder } from "./src/rainbow.js";
 import { registerSettingsCommand } from "./src/settings-menu.js";
 import { createSettingsState } from "./src/settings.js";
 import { theme } from "./src/theme.js";
 import { TokenRateMonitor } from "./src/token-rate.js";
-import type { EffectiveStatusLineSettings, SegmentIncludes } from "./src/types.js";
-
-function segmentIncludes(effective: EffectiveStatusLineSettings): SegmentIncludes {
-	const allSegments = [
-		...effective.leftSegments,
-		...effective.rightSegments,
-		...effective.bottomLeftSegments,
-		...effective.bottomRightSegments,
-	];
-	return {
-		git: allSegments.includes("git"),
-		pr: allSegments.includes("pr"),
-		piStats: allSegments.includes("pi_stats"),
-		tokenRate: allSegments.includes("token_rate"),
-		feeds: allSegments.includes("feeds") ? effective.segmentOptions.feeds.map(feed => feed.customType) : [],
-	};
-}
-
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
 
 export default function (pi: ExtensionAPI) {
@@ -109,11 +86,6 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	const MIN_BOXED_WIDTH = 12;
-	const ANSI_RE = /\x1b\[[0-9;]*m/g;
-	const isBorderRow = (row: string): boolean => {
-		const text = row.replace(ANSI_RE, "");
-		return /^─+$/.test(text) || /^─+ [↑↓] \d+ more\s*─*$/.test(text);
-	};
 
 	const renderBoxed = (
 		innerRender: (width: number) => string[],
@@ -138,77 +110,45 @@ export default function (pi: ExtensionAPI) {
 		}
 		if (lines.length < 3 || bottomIdx < 2) return innerRender(width);
 
-		const hint = (lines[bottomIdx] ?? "").replace(ANSI_RE, "").match(/[↑↓] \d+ more/)?.[0] ?? "";
+		const hint = stripAnsi(lines[bottomIdx] ?? "").match(/[↑↓] \d+ more/)?.[0] ?? "";
 		const effective = state.effective;
-		const include = segmentIncludes(effective);
+		const include = effective.includes;
 		const segCtx = builder.build(innerWidth, effective.segmentOptions, include, hint || undefined);
 		// borderColor is assigned by the host after the factory returns — read late.
 		const border = editor.borderColor ?? ((s: string) => s);
 		const rainbowOn = rainbowActive();
 		const box = theme.getBox(effective.borderStyle);
-		const perimeter = perimeterLength(width, bottomIdx);
-		// Per-glyph paint: rainbow mode colors each cell by its perimeter walk
-		// position; otherwise the host border color is applied per glyph, which
-		// renders identically to the old per-fragment wraps.
-		const paint = (row: number, col: number, ch: string): string =>
-			rainbowOn ? rainbow.colorChar(ch, perimeterPosition(row, col, width, bottomIdx), perimeter) : border(ch);
-		const horizRun = (row: number, startCol: number, count: number): string => {
-			if (!rainbowOn) return border(box.horizontal.repeat(count));
-			let out = "";
-			for (let k = 0; k < count; k++) out += paint(row, startCol + k, box.horizontal);
-			return out;
-		};
-		const gapColor = (str: string, startCol: number, row: number): string => {
-			if (!rainbowOn) return border(str);
-			let out = "";
-			for (let k = 0; k < str.length; k++) out += paint(row, startCol + k, str[k]!);
-			return out;
-		};
+		const painters = makeBoxPainters({ rainbowOn, rainbow, box, width, bottomIdx, flat: border });
 		const bar = buildStatusLine(
 			innerWidth,
 			segCtx,
 			effective,
-			gapColor,
+			painters.gapColor,
 			{
 				left: effective.leftSegments,
 				right: effective.rightSegments,
 			},
 			{ col: 3, row: 0 },
 		);
-		const barWidth = visibleWidth(bar);
-		const pad = Math.max(0, innerWidth - barWidth);
 		// Leading spacer row: keeps the transcript from sitting flush on the box.
-		const out: string[] = [
-			"",
-			paint(0, 0, box.topLeft) +
-				horizRun(0, 1, 2) +
-				bar +
-				horizRun(0, 3 + barWidth, pad + 2) +
-				paint(0, width - 1, box.topRight),
-		];
+		const out: string[] = ["", renderBoxRow(painters, bar, 0, width, box.topLeft, box.topRight)];
 		for (let i = 1; i < bottomIdx; i++) {
-			out.push(paint(i, 0, box.vertical) + " " + (lines[i] ?? "") + "   " + paint(i, width - 1, box.vertical));
+			out.push(
+				painters.paint(i, 0, box.vertical) + " " + (lines[i] ?? "") + "   " + painters.paint(i, width - 1, box.vertical),
+			);
 		}
 		const bottomBar = buildStatusLine(
 			innerWidth,
 			segCtx,
 			effective,
-			gapColor,
+			painters.gapColor,
 			{
 				left: effective.bottomLeftSegments,
 				right: effective.bottomRightSegments,
 			},
 			{ col: 3, row: bottomIdx },
 		);
-		const bottomBarWidth = visibleWidth(bottomBar);
-		const bottomPad = Math.max(0, innerWidth - bottomBarWidth);
-		out.push(
-			paint(bottomIdx, 0, box.bottomLeft) +
-				horizRun(bottomIdx, 1, 2) +
-				bottomBar +
-				horizRun(bottomIdx, 3 + bottomBarWidth, bottomPad + 2) +
-				paint(bottomIdx, width - 1, box.bottomRight),
-		);
+		out.push(renderBoxRow(painters, bottomBar, bottomIdx, width, box.bottomLeft, box.bottomRight));
 		for (let i = bottomIdx + 1; i < lines.length; i++) {
 			out.push(`  ${lines[i]}`);
 		}
@@ -235,25 +175,6 @@ export default function (pi: ExtensionAPI) {
 		wrappedFactory = current;
 		ourFactory = wrapFactory(current);
 		ctx.ui.setEditorComponent(ourFactory);
-	};
-
-	// Redundant with the bar or the graph: the footer's first line (cwd + git
-	// branch + session name) entirely, and — within the stats line — the context
-	// chunk ("22.8%/1.0M (auto)", which the graph's own label repeats) and the
-	// right-aligned model side ("(provider) model • thinking"). The unique stats
-	// (↑↓ tokens, cache R/W, hit rate, cost) survive; when nothing unique remains
-	// the line collapses entirely.
-	const CONTEXT_CHUNK_RE = /(?:\?|\d+(?:\.\d+)?%)\/\S+(?: \(auto\))?/;
-	const stripRedundantStats = (statsLine: string | undefined): string | undefined => {
-		if (!statsLine) return undefined;
-		const plain = statsLine.replace(ANSI_RE, "");
-		// The model side is right-aligned with >=2 spaces of padding; stats parts
-		// are single-space separated, so the first 2+ space run is the boundary.
-		const left = (plain.split(/ {2,}/)[0] ?? "")
-			.replace(CONTEXT_CHUNK_RE, "")
-			.replace(/\s+/g, " ")
-			.trim();
-		return left || undefined;
 	};
 
 	const PI_STATS_CACHE_MS = 250;
