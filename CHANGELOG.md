@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2]
+
+### Fixed
+
+- Roll `formatNumber` over to the next unit at boundaries instead of emitting `1000K`/`1000M`
+
+### Changed
+
+- Reuse `hslToRgb`/`rgbToHex` from `rainbow.ts` in `getSessionAccentHex` instead of a duplicate `hslToHex`
+- Name the menu row prefix widths (`PLAIN_ROW_PREFIX_LEN`, `CHECKBOX_ROW_PREFIX_LEN`) instead of repeating magic numbers
+- Extract `emptyFeedData` for the repeated prototype-less feed map in `SegmentContextBuilder`
+- Drop the redundant `leftParts`/`rightParts` copies in `buildStatusLine`
+
+### Removed
+
+- Remove the unused `block`/`space` status symbols and an unused test import
+
 ## [0.1.1]
 
 ### Changed
