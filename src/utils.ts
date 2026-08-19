@@ -7,13 +7,20 @@
 import { stripVTControlCharacters } from "node:util";
 import { sliceByColumn, visibleWidth } from "@earendil-works/pi-tui";
 import { parseHex } from "./theme.js";
+import { hslToRgb, rgbToHex } from "./rainbow.js";
 
 export function formatNumber(n: number): string {
 	if (n < 1_000) return n.toString();
 	if (n < 10_000) return `${(n / 1_000).toFixed(1)}K`;
-	if (n < 1_000_000) return `${Math.round(n / 1_000)}K`;
+	if (n < 1_000_000) {
+		const k = Math.round(n / 1_000);
+		return k < 1000 ? `${k}K` : `${(n / 1_000_000).toFixed(1)}M`;
+	}
 	if (n < 10_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-	if (n < 1_000_000_000) return `${Math.round(n / 1_000_000)}M`;
+	if (n < 1_000_000_000) {
+		const m = Math.round(n / 1_000_000);
+		return m < 1000 ? `${m}M` : `${(n / 1_000_000_000).toFixed(1)}B`;
+	}
 	if (n < 10_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
 	return `${Math.round(n / 1_000_000_000)}B`;
 }
@@ -122,26 +129,6 @@ function hexToHue(hex: string): number | undefined {
 	return (h + 360) % 360;
 }
 
-function hslToHex(h: number, s: number, l: number): string {
-	const c = (1 - Math.abs(2 * l - 1)) * s;
-	const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-	const m = l - c / 2;
-	let r = 0;
-	let g = 0;
-	let b = 0;
-	if (h < 60) [r, g, b] = [c, x, 0];
-	else if (h < 120) [r, g, b] = [x, c, 0];
-	else if (h < 180) [r, g, b] = [0, c, x];
-	else if (h < 240) [r, g, b] = [0, x, c];
-	else if (h < 300) [r, g, b] = [x, 0, c];
-	else [r, g, b] = [c, 0, x];
-	const toHex = (v: number) =>
-		Math.round((v + m) * 255)
-			.toString(16)
-			.padStart(2, "0");
-	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
 function findSafeHue(target: number, occupied: number[], lo: number, hi: number): number {
 	if (occupied.length === 0) return target;
 	if (occupied.every(h => hueDistance(target, h) >= MIN_HUE_DISTANCE)) return target;
@@ -160,5 +147,5 @@ export function getSessionAccentHex(name: string, themeColorHexes: string[]): st
 	let targetHue = DARK_HUE_START + (nameToHue(name) % range);
 	const themeHues = themeColorHexes.map(hexToHue).filter((h): h is number => h !== undefined);
 	targetHue = findSafeHue(targetHue, themeHues, DARK_HUE_START, DARK_HUE_END);
-	return hslToHex(targetHue, ACCENT_SATURATION, ACCENT_DARK_LIGHTNESS);
+	return rgbToHex(hslToRgb(targetHue, ACCENT_SATURATION, ACCENT_DARK_LIGHTNESS));
 }

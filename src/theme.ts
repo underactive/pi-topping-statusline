@@ -30,8 +30,6 @@ export interface StatusSymbols {
 		powerlineThinRight: string;
 		halfCircleLeft: string;
 		halfCircleRight: string;
-		block: string;
-		space: string;
 		asciiLeft: string;
 		asciiRight: string;
 		dot: string;
@@ -65,8 +63,6 @@ const UNICODE_SYMBOLS: StatusSymbols = {
 		powerlineThinRight: "<",
 		halfCircleLeft: "",
 		halfCircleRight: "",
-		block: "▌",
-		space: " ",
 		asciiLeft: ">",
 		asciiRight: "<",
 		dot: " · ",
@@ -100,8 +96,6 @@ const NERD_SYMBOLS: StatusSymbols = {
 		powerlineThinRight: "\ue0b3",
 		halfCircleLeft: "\ue0b6",
 		halfCircleRight: "\ue0b4",
-		block: "█",
-		space: " ",
 		asciiLeft: ">",
 		asciiRight: "<",
 		dot: " · ",
@@ -135,8 +129,6 @@ const ASCII_SYMBOLS: StatusSymbols = {
 		powerlineThinRight: "<",
 		halfCircleLeft: "",
 		halfCircleRight: "",
-		block: "#",
-		space: " ",
 		asciiLeft: ">",
 		asciiRight: "<",
 		dot: " - ",

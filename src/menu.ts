@@ -112,6 +112,10 @@ export interface MenuResult<T> {
 const DEFAULT_HINTS = ["\u2191\u2193 move", "\u2423 toggle", "\u23ce apply", "esc cancel"];
 const EDIT_HINTS = ["type to edit", "\u232b delete", "\u23ce commit", "esc discard"];
 const OVERLAY_WIDTH = "90%";
+/** Width of the "  <marker> " prefix shared by rows without a checkbox. */
+const PLAIN_ROW_PREFIX_LEN = 5;
+/** Width of the "  <marker> [■] " prefix shared by checkbox rows. */
+const CHECKBOX_ROW_PREFIX_LEN = 8;
 
 interface FlatItem {
 	id: string;
@@ -607,10 +611,9 @@ export class MenuComponent implements Component {
 		if (item.text) {
 			const editing = this.editing?.id === item.id ? this.editing : undefined;
 			const raw = editing ? editing.buffer : String(value ?? "");
-			const fixedLeftLen = 5;
-			const labelWidth = Math.min(16, Math.max(0, innerWidth - fixedLeftLen - 4));
+			const labelWidth = Math.min(16, Math.max(0, innerWidth - PLAIN_ROW_PREFIX_LEN - 4));
 			const label = truncateToWidth(item.label, labelWidth).padEnd(labelWidth);
-			const fieldWidth = Math.max(0, innerWidth - fixedLeftLen - labelWidth - 3);
+			const fieldWidth = Math.max(0, innerWidth - PLAIN_ROW_PREFIX_LEN - labelWidth - 3);
 			// Keep the caret in view by showing the buffer's tail once it overflows.
 			const shownRaw =
 				editing && raw.length > fieldWidth - 1 ? raw.slice(raw.length - (fieldWidth - 1)) : raw;
@@ -630,8 +633,7 @@ export class MenuComponent implements Component {
 			const stateWord = `‹ ${value} ›`;
 			// Ungated cycle rows carry no checkbox; gated ones keep it for the space toggle.
 			if (!item.cycleEnabledBy) {
-				const fixedLeftLen = 5; // "  " + marker(1) + " " + margin
-				const maxLabelLen = Math.max(0, innerWidth - fixedLeftLen - visibleWidth(stateWord) - 1);
+				const maxLabelLen = Math.max(0, innerWidth - PLAIN_ROW_PREFIX_LEN - visibleWidth(stateWord) - 1);
 				const label = item.label.length > maxLabelLen ? truncateToWidth(item.label, maxLabelLen) : item.label;
 				const leftPlain = `  ${marker} ${label}`;
 				const gap = Math.max(1, innerWidth - visibleWidth(leftPlain) - visibleWidth(stateWord) - 2);
@@ -639,8 +641,7 @@ export class MenuComponent implements Component {
 				return this.wrap("\u2551", content, "\u2551");
 			}
 			const enabled = this.values[item.cycleEnabledBy] as boolean;
-			const fixedLeftLen = 8;
-			const maxLabelLen = Math.max(0, innerWidth - fixedLeftLen - visibleWidth(stateWord) - 1);
+			const maxLabelLen = Math.max(0, innerWidth - CHECKBOX_ROW_PREFIX_LEN - visibleWidth(stateWord) - 1);
 			const label = item.label.length > maxLabelLen ? truncateToWidth(item.label, maxLabelLen) : item.label;
 			const leftPlain = `  ${marker} [${enabled ? "■" : " "}] ${label}`;
 			const gap = Math.max(1, innerWidth - visibleWidth(leftPlain) - visibleWidth(stateWord) - 2);
@@ -652,8 +653,7 @@ export class MenuComponent implements Component {
 		const box = enabled ? "\u25a0" : " ";
 		const stateWord = enabled ? "ON" : "OFF";
 		const rightPlain = `${stateWord}  `;
-		const fixedLeftLen = 8; // "  " + marker(1) + " " + "[" + box(1) + "]" + " "
-		const maxLabelLen = Math.max(0, innerWidth - fixedLeftLen - rightPlain.length - 1);
+		const maxLabelLen = Math.max(0, innerWidth - CHECKBOX_ROW_PREFIX_LEN - rightPlain.length - 1);
 		const label = item.label.length > maxLabelLen ? truncateToWidth(item.label, maxLabelLen) : item.label;
 		const leftPlain = `  ${marker} [${box}] ${label}`;
 		const gap = Math.max(1, innerWidth - visibleWidth(leftPlain) - visibleWidth(rightPlain));

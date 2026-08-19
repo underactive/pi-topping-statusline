@@ -15,7 +15,6 @@ import type { ExtensionAPI, ExtensionContext, SessionEntry } from "@earendil-wor
 import { SegmentContextBuilder } from "../context.ts";
 import { SEGMENTS } from "../segments.ts";
 import { DEFAULT_FEEDS, DEFAULT_SEGMENTS, resolveEffectiveSettings, sanitizeFeeds } from "../settings.ts";
-import { theme } from "../theme.ts";
 import type { SegmentContext, StatusLineFeed } from "../types.ts";
 
 const SAVINGS = "pi-prompt-cache/savings";
@@ -364,5 +363,4 @@ test("the default subscription matches what pi-prompt-cache publishes", () => {
 	assert.equal(DEFAULT_FEEDS[0]?.customType, SAVINGS);
 	assert.equal(DEFAULT_FEEDS[0]?.field, "savedUsd");
 	assert.equal(DEFAULT_FEEDS[0]?.format, "currency");
-	void theme;
 });

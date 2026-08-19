@@ -94,6 +94,7 @@ function loadSettings(): StatusLineSettings {
 		if (typeof raw.rainbowBorder === "boolean") settings.rainbowBorder = raw.rainbowBorder;
 		return settings;
 	} catch {
+		// Missing or corrupt settings.json falls back to defaults.
 		return {};
 	}
 }

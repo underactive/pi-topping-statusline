@@ -17,6 +17,9 @@ const EXEC_TIMEOUT_MS = 2_000;
 /** getEntries() filters and copies the whole session, so rescans are rate-limited. */
 const FEED_TTL_MS = 2_000;
 
+/** Prototype-less map — feed keys are publisher-supplied customTypes. */
+const emptyFeedData = (): Record<string, unknown> => Object.create(null);
+
 interface GitStatusCounts {
 	staged: number;
 	unstaged: number;
@@ -85,7 +88,7 @@ export class SegmentContextBuilder {
 
 	#worktree: { projectName: string; worktreeName: string } | null = null;
 
-	#feedData: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+	#feedData: Record<string, unknown> = emptyFeedData();
 	#feedsScannedAt = 0;
 	#feedsScanned = "";
 	#runStartedAt = 0;
@@ -113,7 +116,7 @@ export class SegmentContextBuilder {
 		// session still carries the previous run's entries. Anything predating this
 		// attach belongs to that stale run.
 		this.#runStartedAt = Date.now();
-		this.#feedData = Object.create(null) as Record<string, unknown>;
+		this.#feedData = emptyFeedData();
 		this.#feedsScannedAt = 0;
 		this.#feedsScanned = "";
 		if (this.#repoCwd !== ctx.cwd) {
@@ -265,7 +268,7 @@ export class SegmentContextBuilder {
 	 */
 	#refreshFeeds(customTypes: readonly string[], now: number): void {
 		this.#feedsScannedAt = now;
-		this.#feedData = Object.create(null) as Record<string, unknown>;
+		this.#feedData = emptyFeedData();
 		const entries = this.#ctx?.sessionManager?.getEntries();
 		if (!entries) return;
 		const pending = new Set(customTypes);

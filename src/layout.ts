@@ -66,26 +66,23 @@ export function buildStatusLine(
 	const fgAnsi = theme.getFgAnsi("text");
 	const sepAnsi = theme.getFgAnsi("statusLineSep");
 
-	const leftParts: string[] = [];
+	const left: string[] = [];
 	const leftSegIds: StatusLineSegmentId[] = [];
 	for (const segId of segmentGroups.left) {
 		const rendered = renderSegment(segId, ctx);
 		if (rendered.visible && rendered.content) {
-			leftParts.push(rendered.content);
+			left.push(rendered.content);
 			leftSegIds.push(segId);
 		}
 	}
 
-	const rightParts: string[] = [];
+	const right: string[] = [];
 	for (const segId of segmentGroups.right) {
 		const rendered = renderSegment(segId, ctx);
 		if (rendered.visible && rendered.content) {
-			rightParts.push(rendered.content);
+			right.push(rendered.content);
 		}
 	}
-
-	const left = [...leftParts];
-	const right = [...rightParts];
 
 	const leftSepWidth = visibleWidth(separatorDef.left);
 	const rightSepWidth = visibleWidth(separatorDef.right);

@@ -46,7 +46,7 @@ export function perimeterPosition(row: number, col: number, width: number, botto
 	return 2 * width + 2 * bottomIdx - 2 - row; // col === 0
 }
 
-function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+export function hslToRgb(h: number, s: number, l: number): [number, number, number] {
 	const c = (1 - Math.abs(2 * l - 1)) * s;
 	const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
 	const m = l - c / 2;
@@ -60,7 +60,7 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
 	return [Math.round((rgb[0] + m) * 255), Math.round((rgb[1] + m) * 255), Math.round((rgb[2] + m) * 255)];
 }
 
-function rgbToHex([r, g, b]: [number, number, number]): string {
+export function rgbToHex([r, g, b]: [number, number, number]): string {
 	return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
