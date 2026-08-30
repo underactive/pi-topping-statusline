@@ -79,6 +79,6 @@ export function renderBoxRowIfVisible(
 	rightGlyph: string,
 ): string[] {
 	const plainBar = stripVTControlCharacters(bar);
-	if (plainBar.trim().length === 0 || visibleWidth(plainBar) === 0) return [];
+	if (plainBar.trim().length === 0) return [];
 	return [renderBoxRow(painters, bar, rowIdx, boxWidth, leftGlyph, rightGlyph)];
 }
