@@ -55,17 +55,18 @@ export default function (pi: ExtensionAPI) {
 	rateMonitor.attach(pi);
 	builder.setTokenRateProvider(() => rateMonitor.getDisplay());
 
-	// Animated rainbow border while the thinking level is max: a timer steps
-	// the hue phase and re-renders; renderBoxed paints the box glyphs from it.
+	// The rainbow is visible at max thinking independently of whether its hue
+	// phase is animated. Stopping the timer preserves the current live phase.
 	const rainbow = new RainbowBorder();
 	let rainbowTimer: ReturnType<typeof setInterval> | undefined;
 	const rainbowActive = (): boolean =>
 		state.effective.rainbowBorder && activeCtx !== undefined && pi.getThinkingLevel() === "max";
+	const rainbowAnimationActive = (): boolean => rainbowActive() && state.effective.rainbowAnimation;
 	const syncRainbow = (): void => {
-		if (rainbowActive()) {
+		if (rainbowAnimationActive()) {
 			if (!rainbowTimer) {
 				rainbowTimer = setInterval(() => {
-					if (!rainbowActive()) {
+					if (!rainbowAnimationActive()) {
 						syncRainbow();
 						return;
 					}

@@ -113,9 +113,11 @@ test("a left group shifts the gap start by its width", () => {
 	assert.ok(calls[0]!.startCol > 3, "gap starts after the pi segment, not at the origin");
 });
 
-test("rainbowBorder defaults to true and is loadable", () => {
+test("rainbow settings default to true and resolve explicit false", () => {
 	assert.equal(resolveEffectiveSettings({}).rainbowBorder, true);
+	assert.equal(resolveEffectiveSettings({}).rainbowAnimation, true);
 	assert.equal(resolveEffectiveSettings({ rainbowBorder: false }).rainbowBorder, false);
+	assert.equal(resolveEffectiveSettings({ rainbowAnimation: false }).rainbowAnimation, false);
 });
 
 test("borderStyle defaults to rounded and is loadable", () => {

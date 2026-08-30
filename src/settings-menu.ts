@@ -135,6 +135,11 @@ function buildSections(settings: StatusLineSettings): MenuSection[] {
 				label: "Rainbow border on max thinking",
 				value: settings.rainbowBorder ?? true,
 			},
+			{
+				id: "rainbowAnimation",
+				label: "Animate rainbow border",
+				value: settings.rainbowAnimation ?? true,
+			},
 		],
 	};
 	return [
@@ -164,6 +169,7 @@ function valuesToSettings(values: Record<string, MenuValue>): StatusLineSettings
 		segments,
 		feeds: sanitizeFeeds(feedsFromValues(values)),
 		rainbowBorder: values.rainbowBorder === true,
+		rainbowAnimation: values.rainbowAnimation === true,
 	};
 }
 
@@ -217,6 +223,7 @@ class StatusLinePreview {
 		const boxWidth = Math.max(24, innerWidth - 1);
 		const barWidth = boxWidth - 6;
 		const rainbowOn = effective.rainbowBorder;
+		const rainbowAnimationOn = rainbowOn && effective.rainbowAnimation;
 
 		// The theme singleton drives glyph lookups everywhere, so swap the
 		// symbol preset for this synchronous render only; the live bar behind
@@ -255,7 +262,7 @@ class StatusLinePreview {
 			const bottomIdx = 2;
 			const painters = makeBoxPainters({
 				rainbowOn,
-				rainbow: new RainbowBorder((elapsedMs * 360) / RAINBOW_CYCLE_MS),
+				rainbow: new RainbowBorder(rainbowAnimationOn ? (elapsedMs * 360) / RAINBOW_CYCLE_MS : 0),
 				box,
 				width: boxWidth,
 				bottomIdx,
@@ -291,9 +298,8 @@ class StatusLinePreview {
 						painters.paint(1, boxWidth - 1, box.vertical),
 					renderBoxRow(painters, bottom, bottomIdx, boxWidth, box.bottomLeft, box.bottomRight),
 				],
-				// Keep the preview animated only while the rainbow is enabled;
-				// a static preview refreshes once and stops.
-				nextRefreshInMs: rainbowOn ? RAINBOW_FRAME_MS : undefined,
+				// A static rainbow stays at phase zero and needs no repaint timer.
+				nextRefreshInMs: rainbowAnimationOn ? RAINBOW_FRAME_MS : undefined,
 			};
 		} finally {
 			theme.setSymbolPreset(applied);
@@ -308,7 +314,7 @@ export function registerSettingsCommand(
 	onChange: () => void,
 ): void {
 	pi.registerCommand("topping-statusline-settings", {
-		description: "Configure transparent segments, statusline segments, separator, symbols, border style, feeds, and rainbow border",
+		description: "Configure transparent segments, statusline segments, separator, symbols, border style, feeds, and rainbow border animation",
 		handler: async (_args, ctx: ExtensionCommandContext) => {
 			if (ctx.mode !== "tui") {
 				ctx.ui.notify("/topping-statusline-settings requires TUI mode", "error");

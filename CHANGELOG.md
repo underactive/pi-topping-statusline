@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add an option to keep the max-thinking rainbow border static without its repaint timer
+
 ## [0.1.2]
 
 ### Fixed

@@ -92,6 +92,7 @@ function loadSettings(): StatusLineSettings {
 		}
 		if (raw.feeds !== undefined) settings.feeds = sanitizeFeeds(raw.feeds);
 		if (typeof raw.rainbowBorder === "boolean") settings.rainbowBorder = raw.rainbowBorder;
+		if (typeof raw.rainbowAnimation === "boolean") settings.rainbowAnimation = raw.rainbowAnimation;
 		return settings;
 	} catch {
 		// Missing or corrupt settings.json falls back to defaults.
@@ -153,6 +154,7 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 		bottomLeftSegments,
 		bottomRightSegments,
 		rainbowBorder: settings.rainbowBorder ?? true,
+		rainbowAnimation: settings.rainbowAnimation ?? true,
 		includes,
 		segmentOptions: {
 			model: { showModel: seg.model, showProvider: seg.provider, showThinking: seg.thinking },

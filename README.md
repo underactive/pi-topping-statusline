@@ -41,6 +41,7 @@ and apply live.
 ║    Symbols                                       ‹ nerdfont ›  ║
 ║    Border style                                   ‹ rounded ›  ║
 ║    [■] Rainbow border on max thinking                      ON  ║
+║    [■] Animate rainbow border                              ON  ║
 ║                                                                ║
 ╟─ Top Left Segment Group ───────────────────────────────────────╢
 ║    [■] Pi symbol                                           ON  ║
@@ -65,26 +66,26 @@ and apply live.
 ║    + add feed                                                  ║
 ║                                                                ║
 ║  ↑↓ move  ←→ cycle  ␣ toggle  ⏎ apply/edit  esc cancel         ║
-╚════════════════════════════════════════════════════════[ 1/28 ]╝
+╚════════════════════════════════════════════════════════[ 1/29 ]╝
 ```
 
 | Section | Settings |
 | --- | --- |
-| Global | Transparent Segments · Separator (`powerline` `powerline-thin` `slash` `pipe` `ascii`) · Symbols (`nerdfont` `unicode` `ascii` — stored in settings.json as `nerd`/`unicode`/`ascii`) · Border style (`rounded` `heavy` `double` `single`) · Rainbow border on max thinking |
+| Global | Transparent Segments · Separator (`powerline` `powerline-thin` `slash` `pipe` `ascii`) · Symbols (`nerdfont` `unicode` `ascii` — stored in settings.json as `nerd`/`unicode`/`ascii`) · Border style (`rounded` `heavy` `double` `single`) · Rainbow border on max thinking · Animate rainbow border |
 | Top Left Segment Group | Pi symbol · Model · Provider · Thinking level · Path · Git · PR |
 | Top Right Segment Group | Token rate · Session name |
 | Bottom Right Segment Group | Feeds · Token rate · Pi stats · Context bar · Context stats |
 | Bottom Left Segment Group | Scroll hint · Feeds · Token rate |
 | Feeds | One subscription per row: type · field · prefix · format, plus add/remove |
-| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on |
+| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on · Animate rainbow border on |
 
 With **Rainbow border on max thinking** on (the default), cycling the thinking level to `max`
-replaces the border's fixed theme color with an animated rainbow: a full hue cycle distributed
-around the box perimeter that slowly flows around the border (~14s per rotation), like Apple
-Intelligence's screen border. Any other thinking level keeps the normal theme border color.
-The settings preview animates while the toggle is on; the effect repaints the border about
-20 times a second, so switch it off over slow SSH links or in terminals with expensive
-redraws.
+replaces the border's fixed theme color with a rainbow: a full hue cycle distributed around the
+box perimeter. **Animate rainbow border** is also on by default, so the hues flow around the
+border (~14s per rotation), like Apple Intelligence's screen border. Turn animation off to keep
+the rainbow at a fixed color phase without its repaint timer; the settings preview uses a stable
+phase too. Any other thinking level keeps the normal theme border color. Disable animation over
+slow SSH links or in terminals with expensive redraws while retaining the rainbow border.
 
 ## Segments
 

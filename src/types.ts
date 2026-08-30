@@ -69,8 +69,10 @@ export interface StatusLineSettings {
 	borderStyle?: BorderStyle;
 	segments?: StatusLineSegmentToggles;
 	feeds?: StatusLineFeed[];
-	/** Animated rainbow border while the thinking level is max. */
+	/** Rainbow border while the thinking level is max. */
 	rainbowBorder?: boolean;
+	/** Animate the rainbow border when it is visible. */
+	rainbowAnimation?: boolean;
 }
 
 /** Resolved per-segment render options; resolveEffectiveSettings always fills them. */
@@ -102,6 +104,7 @@ export interface EffectiveStatusLineSettings {
 	bottomRightSegments: StatusLineSegmentId[];
 	segmentOptions: StatusLineSegmentOptions;
 	rainbowBorder: boolean;
+	rainbowAnimation: boolean;
 	includes: SegmentIncludes;
 }
 
