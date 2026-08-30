@@ -170,7 +170,21 @@ export default function (pi: ExtensionAPI) {
 				? inner(tui, editorTheme, keybindings)
 				: new CustomEditor(tui, editorTheme, keybindings);
 			const innerRender = editor.render.bind(editor);
-			editor.render = width => renderBoxed(innerRender, width, editor);
+			let boxRenderFailed = false;
+			editor.render = width => {
+				try {
+					return renderBoxed(innerRender, width, editor);
+				} catch (err) {
+					if (!boxRenderFailed) {
+						boxRenderFailed = true;
+						activeCtx?.ui.notify(
+							`Statusline render failed, using plain editor: ${err instanceof Error ? err.message : String(err)}`,
+							"error",
+						);
+					}
+					return innerRender(width);
+				}
+			};
 			return editor;
 		};
 	};
