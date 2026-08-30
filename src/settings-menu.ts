@@ -201,12 +201,10 @@ function cannedFeedData(
 }
 
 class StatusLinePreview {
-	readonly #state: SettingsState;
 	readonly #builder: SegmentContextBuilder;
 	readonly #uiTheme: Theme;
 
-	constructor(state: SettingsState, builder: SegmentContextBuilder, uiTheme: Theme) {
-		this.#state = state;
+	constructor(builder: SegmentContextBuilder, uiTheme: Theme) {
 		this.#builder = builder;
 		this.#uiTheme = uiTheme;
 	}
@@ -320,7 +318,7 @@ export function registerSettingsCommand(
 				ctx.ui.notify("/topping-statusline-settings requires TUI mode", "error");
 				return;
 			}
-			const preview = new StatusLinePreview(state, builder, ctx.ui.theme);
+			const preview = new StatusLinePreview(builder, ctx.ui.theme);
 			const result = await showMenu<Record<string, MenuValue>>(ctx, {
 				title: "Pi Topping Statusline: Settings",
 				sections: buildSections(state.settings),

@@ -131,9 +131,10 @@ A feed contributes nothing when its publisher is absent, has published nothing t
 reports a value its format suppresses; the segment disappears entirely once every feed is
 quiet, so it costs nothing to leave switched on. Publishers typically reset per process run,
 so entries predating the current session start (`--resume`, `/reload`, `/new`, fork) are
-ignored rather than shown as a stale total. The session is re-read at most once every two
-seconds, because pi copies the whole entry list on each read while the bar re-renders on
-every keystroke.
+ignored rather than shown as a stale total. During steady-state rendering, the session is
+re-read at most once every two seconds, because pi copies the whole entry list on each read
+while the bar re-renders on every keystroke; changing subscriptions or starting a new
+session forces an immediate scan.
 
 ### Publishing a feed
 

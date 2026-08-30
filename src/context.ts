@@ -191,6 +191,9 @@ export class SegmentContextBuilder {
 			this.#requestRender();
 		} finally {
 			this.#repoResolving = false;
+			if (this.#repoCwd && this.#repoCwd !== cwd) {
+				void this.#resolveRepo(this.#repoCwd);
+			}
 		}
 	}
 
@@ -278,7 +281,8 @@ export class SegmentContextBuilder {
 			// first: matching on customType alone lets one shadow a real entry.
 			if (entry?.type !== "custom" || !pending.has(entry.customType)) continue;
 			const ts = Date.parse(entry.timestamp);
-			if (!Number.isFinite(ts) || ts < this.#runStartedAt) break;
+			if (!Number.isFinite(ts)) continue;
+			if (ts < this.#runStartedAt) break;
 			pending.delete(entry.customType);
 			if (entry.data !== undefined) this.#feedData[entry.customType] = entry.data;
 		}
@@ -307,7 +311,7 @@ export class SegmentContextBuilder {
 						const u = URL.parse(parsed.url);
 						if (
 							u &&
-							(u.protocol === "https:" || u.protocol === "http:") &&
+							u.protocol === "https:" &&
 							u.hostname === "github.com" &&
 							!/[\u0000-\u001f\u007f]/.test(parsed.url)
 						) {
