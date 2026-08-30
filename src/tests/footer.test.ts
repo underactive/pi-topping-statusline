@@ -7,7 +7,13 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isBorderRow, stripAnsi, stripRedundantStats } from "../footer.ts";
+import {
+	collapseFooterLayoutSlot,
+	filterVisibleRows,
+	isBorderRow,
+	stripAnsi,
+	stripRedundantStats,
+} from "../footer.ts";
 
 test("isBorderRow accepts a plain border run", () => {
 	assert.equal(isBorderRow("─────"), true);
@@ -33,6 +39,29 @@ test("isBorderRow rejects text rows, empty rows, and ASCII dashes", () => {
 
 test("stripAnsi removes SGR sequences only", () => {
 	assert.equal(stripAnsi("\x1b[32mgreen\x1b[0m plain"), "green plain");
+});
+
+test("filterVisibleRows drops empty notifications but keeps visible rows", () => {
+	assert.deepEqual(filterVisibleRows(["", "  ", "\x1b[32m\x1b[0m", "saved $1.23"]), ["saved $1.23"]);
+});
+
+test("fullscreen footer slot can collapse and restores its minimum", () => {
+	const footer = { render: () => [] };
+	const footerContainer = { children: [footer] };
+	const footerEntry = { component: footerContainer, minSize: 1 };
+	const dock = { entries: [{ component: {} }, footerEntry] };
+	const root = { entries: [{ component: {} }, { component: dock, minSize: 1 }] };
+
+	const restore = collapseFooterLayoutSlot(root, footer);
+	assert.equal(footerEntry.minSize, 0);
+	assert.equal(root.entries[1]?.minSize, 1, "must not collapse the whole dock");
+	restore?.();
+	assert.equal(footerEntry.minSize, 1);
+});
+
+test("inline layouts without a footer slot are left untouched", () => {
+	assert.equal(collapseFooterLayoutSlot(undefined, {}), undefined);
+	assert.equal(collapseFooterLayoutSlot({ children: [] }, {}), undefined);
 });
 
 test("stripRedundantStats passes undefined through", () => {

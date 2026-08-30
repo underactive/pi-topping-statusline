@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Avoid reserving an empty footer row when no bottom statusline content is visible
+
 ## [0.1.3]
 
 ### Added

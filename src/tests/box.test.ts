@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { stripVTControlCharacters } from "node:util";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { makeBoxPainters, renderBoxRow } from "../box.ts";
+import { makeBoxPainters, renderBoxRow, renderBoxRowIfVisible } from "../box.ts";
 import { RainbowBorder } from "../rainbow.ts";
 import type { BoxGlyphs } from "../theme.ts";
 
@@ -42,6 +42,19 @@ test("an empty bar renders chrome only, still totalling boxWidth", () => {
 	const out = renderBoxRow(identityPainters(20), "", 2, 20, ROUNDED.bottomLeft, ROUNDED.bottomRight);
 	assert.equal(out, "╰──" + "─".repeat(16) + "╯");
 	assert.equal(visibleWidth(out), 20);
+});
+
+test("an empty footer bar reserves no row", () => {
+	assert.deepEqual(
+		renderBoxRowIfVisible(identityPainters(20), "\x1b[32m \x1b[0m", 2, 20, ROUNDED.bottomLeft, ROUNDED.bottomRight),
+		[],
+	);
+});
+
+test("a visible footer bar retains one row", () => {
+	const rows = renderBoxRowIfVisible(identityPainters(20), "X", 2, 20, ROUNDED.bottomLeft, ROUNDED.bottomRight);
+	assert.equal(rows.length, 1);
+	assert.equal(rows[0], "╰──X" + "─".repeat(15) + "╯");
 });
 
 test("wide characters in the bar consume pad cells, keeping the total fixed", () => {

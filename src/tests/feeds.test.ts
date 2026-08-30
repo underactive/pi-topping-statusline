@@ -12,7 +12,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { ExtensionAPI, ExtensionContext, SessionEntry } from "@earendil-works/pi-coding-agent";
+import { renderBoxRowIfVisible } from "../box.ts";
 import { SegmentContextBuilder } from "../context.ts";
+import { buildStatusLine } from "../layout.ts";
 import { SEGMENTS } from "../segments.ts";
 import { DEFAULT_FEEDS, DEFAULT_SEGMENTS, resolveEffectiveSettings, sanitizeFeeds } from "../settings.ts";
 import type { SegmentContext, StatusLineFeed } from "../types.ts";
@@ -71,12 +73,37 @@ const savingsFeed = (format: StatusLineFeed["format"] = "currency", prefix = "CS
 const renderSaved = (value: unknown, format: StatusLineFeed["format"] = "currency") =>
 	renderFeeds([savingsFeed(format)], { [SAVINGS]: { savedUsd: value } });
 
+const FOOTER_PAINTERS = {
+	paint: (_row: number, _col: number, ch: string) => ch,
+	horizRun: (_row: number, _startCol: number, count: number) => "─".repeat(count),
+	gapColor: (str: string, _startCol: number, _row: number) => str,
+};
+
+/** Build the same one-row bottom-bar path used by index.ts for feed-only cases. */
+const renderFeedRows = (feedData: Record<string, unknown> | undefined, format: StatusLineFeed["format"] = "currency") => {
+	const feed = savingsFeed(format);
+	const settings = resolveEffectiveSettings({ feeds: [feed] });
+	const ctx: SegmentContext = { ...BASE, options: settings.segmentOptions, feedData };
+	const bar = buildStatusLine(74, ctx, settings, (str, _startCol, _row) => str, { left: [], right: ["feeds"] });
+	return renderBoxRowIfVisible(FOOTER_PAINTERS, bar, 2, 80, "╰", "╯");
+};
+
 // ── reading the feed ───────────────────────────────────────────────────────
 
 test("hidden when no publisher has emitted", async () => {
 	const ctx = await contextAfterEmitting(() => []);
 	assert.deepEqual(ctx.feedData, {});
 	assert.equal(SEGMENTS.feeds.render(ctx).visible, false);
+});
+
+test("configured but unavailable or empty feeds reserve no footer row", () => {
+	assert.equal(renderFeedRows(undefined).length, 0);
+	assert.equal(renderFeedRows({}).length, 0);
+	assert.equal(renderFeedRows({ [SAVINGS]: {} }).length, 0);
+});
+
+test("a visible feed keeps the footer row", () => {
+	assert.equal(renderFeedRows({ [SAVINGS]: { savedUsd: 1.25 } }).length, 1);
 });
 
 test("a later custom_message sharing the customType cannot shadow a real entry", async () => {
@@ -258,6 +285,11 @@ test("currency hides sub-cent and negative values, matching the publisher's own 
 	for (const value of [0.005, 0.0164, 1.235]) {
 		assert.equal(renderSaved(value).visible, true, `${value} must show`);
 	}
+});
+
+test("format-suppressed feed values reserve no footer row", () => {
+	assert.equal(renderFeedRows({ [SAVINGS]: { savedUsd: 0.0049 } }).length, 0);
+	assert.equal(renderFeedRows({ [SAVINGS]: { savedUsd: "" } }, "text").length, 0);
 });
 
 test("no $0.00 artifact is reachable near the crossing", () => {

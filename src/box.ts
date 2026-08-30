@@ -9,6 +9,7 @@
  * (host borderColor vs menu theme; shared stepped animator vs phase-from-
  * elapsed instance).
  */
+import { stripVTControlCharacters } from "node:util";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { perimeterLength, perimeterPosition, type RainbowBorder } from "./rainbow.js";
 import type { BoxGlyphs } from "./theme.js";
@@ -66,4 +67,18 @@ export function renderBoxRow(
 		painters.horizRun(rowIdx, 3 + barWidth, pad + 2) +
 		painters.paint(rowIdx, boxWidth - 1, rightGlyph)
 	);
+}
+
+/** Render a box row only when its bar contains visible, non-whitespace content. */
+export function renderBoxRowIfVisible(
+	painters: BoxPainters,
+	bar: string,
+	rowIdx: number,
+	boxWidth: number,
+	leftGlyph: string,
+	rightGlyph: string,
+): string[] {
+	const plainBar = stripVTControlCharacters(bar);
+	if (plainBar.trim().length === 0 || visibleWidth(plainBar) === 0) return [];
+	return [renderBoxRow(painters, bar, rowIdx, boxWidth, leftGlyph, rightGlyph)];
 }

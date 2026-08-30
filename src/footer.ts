@@ -8,6 +8,52 @@ export function stripAnsi(str: string): string {
 	return str.replace(ANSI_RE, "");
 }
 
+/** Drop host footer rows that contain only whitespace or SGR control codes. */
+export function filterVisibleRows(rows: readonly string[]): string[] {
+	return rows.filter(row => stripAnsi(row).trim().length > 0);
+}
+
+interface LayoutEntry {
+	component: unknown;
+	minSize?: number;
+}
+
+function containsComponent(node: unknown, target: unknown, seen: Set<unknown>): boolean {
+	if (node === target) return true;
+	if (!node || typeof node !== "object" || seen.has(node)) return false;
+	seen.add(node);
+	const children = (node as { children?: unknown }).children;
+	return Array.isArray(children) && children.some(child => containsComponent(child, target, seen));
+}
+
+/**
+ * Let Pi's fullscreen footer slot collapse when its component renders no rows.
+ * Pi 0.84 gives that VStack entry minSize=1, independently of render output.
+ */
+export function collapseFooterLayoutSlot(layoutRoot: unknown, footer: unknown): (() => void) | undefined {
+	const seen = new Set<unknown>();
+	const find = (node: unknown): LayoutEntry | undefined => {
+		if (!node || typeof node !== "object" || seen.has(node)) return undefined;
+		seen.add(node);
+		const entries = (node as { entries?: unknown }).entries;
+		if (!Array.isArray(entries)) return undefined;
+		for (const entry of entries as LayoutEntry[]) {
+			const nested = find(entry.component);
+			if (nested) return nested;
+		}
+		return (entries as LayoutEntry[]).find(entry => containsComponent(entry.component, footer, new Set()));
+	};
+
+	const entry = find(layoutRoot);
+	if (!entry) return undefined;
+	const previous = entry.minSize;
+	entry.minSize = 0;
+	return () => {
+		if (previous === undefined) delete entry.minSize;
+		else entry.minSize = previous;
+	};
+}
+
 export function isBorderRow(row: string): boolean {
 	const text = stripAnsi(row);
 	return /^─+$/.test(text) || /^─+ [↑↓] \d+ more\s*─*$/.test(text);

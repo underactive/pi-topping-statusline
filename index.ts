@@ -25,9 +25,15 @@ import {
 	type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
-import { makeBoxPainters, renderBoxRow } from "./src/box.js";
+import { makeBoxPainters, renderBoxRow, renderBoxRowIfVisible } from "./src/box.js";
 import { SegmentContextBuilder } from "./src/context.js";
-import { isBorderRow, stripAnsi, stripRedundantStats } from "./src/footer.js";
+import {
+	collapseFooterLayoutSlot,
+	filterVisibleRows,
+	isBorderRow,
+	stripAnsi,
+	stripRedundantStats,
+} from "./src/footer.js";
 import { buildStatusLine } from "./src/layout.js";
 import { RAINBOW_DEG_PER_FRAME, RAINBOW_FRAME_MS, RainbowBorder } from "./src/rainbow.js";
 import { registerSettingsCommand } from "./src/settings-menu.js";
@@ -47,6 +53,7 @@ export default function (pi: ExtensionAPI) {
 	let ensureTimer: ReturnType<typeof setInterval> | undefined;
 	let patchedFooter: Component | undefined;
 	let footerRenderOriginal: ((width: number) => string[]) | undefined;
+	let restoreFooterLayout: (() => void) | undefined;
 
 	const requestRender = () => activeTui?.requestRender();
 	builder.setRequestRender(requestRender);
@@ -149,7 +156,7 @@ export default function (pi: ExtensionAPI) {
 			},
 			{ col: 3, row: bottomIdx },
 		);
-		out.push(renderBoxRow(painters, bottomBar, bottomIdx, width, box.bottomLeft, box.bottomRight));
+		out.push(...renderBoxRowIfVisible(painters, bottomBar, bottomIdx, width, box.bottomLeft, box.bottomRight));
 		for (let i = bottomIdx + 1; i < lines.length; i++) {
 			out.push(`  ${lines[i]}`);
 		}
@@ -212,17 +219,23 @@ export default function (pi: ExtensionAPI) {
 	// its cwd and stats lines, which the box now carries itself.
 	const ensureFooterPatched = () => {
 		const tui = activeTui;
-		if (!tui || patchedFooter) return;
-		let footer: Component | undefined;
-		for (const child of tui.children) {
-			footer = findFooter(child);
-			if (footer) break;
+		if (!tui) return;
+		if (!patchedFooter) {
+			let footer: Component | undefined;
+			for (const child of tui.children) {
+				footer = findFooter(child);
+				if (footer) break;
+			}
+			if (!footer) return;
+			const orig = footer.render.bind(footer);
+			footerRenderOriginal = orig;
+			footer.render = width => filterVisibleRows(orig(width).slice(2));
+			patchedFooter = footer;
 		}
-		if (!footer) return;
-		const orig = footer.render.bind(footer);
-		footerRenderOriginal = orig;
-		footer.render = width => orig(width).slice(2);
-		patchedFooter = footer;
+		if (!restoreFooterLayout) {
+			const layoutRoot = (tui as unknown as { layoutRoot?: unknown }).layoutRoot;
+			restoreFooterLayout = collapseFooterLayoutSlot(layoutRoot, patchedFooter);
+		}
 	};
 
 	pi.on("model_select", () => requestRender());
@@ -267,8 +280,10 @@ export default function (pi: ExtensionAPI) {
 		if (patchedFooter && footerRenderOriginal) {
 			patchedFooter.render = footerRenderOriginal;
 		}
+		restoreFooterLayout?.();
 		patchedFooter = undefined;
 		footerRenderOriginal = undefined;
+		restoreFooterLayout = undefined;
 		ourFactory = undefined;
 		wrappedFactory = undefined;
 		activeTui = undefined;
