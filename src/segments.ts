@@ -277,8 +277,8 @@ const feedsSegment: StatusLineSegment = {
 			const content = `${sanitizeLabel(feed.prefix)}${text}`;
 			parts.push(
 				display?.phase === "fading"
-					? theme.fadeFg("success", "dim", display.fadeShade, content)
-					: theme.fg("success", content),
+					? theme.fadeFg("dim", "statusLineBg", display.fadeShade, content)
+					: theme.fg("dim", content),
 			);
 		}
 		if (parts.length === 0) return INVISIBLE;

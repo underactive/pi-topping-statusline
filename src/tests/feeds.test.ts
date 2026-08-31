@@ -17,6 +17,7 @@ import { FEED_FADE_MS, FEED_HOLD_MS, SegmentContextBuilder, getFeedDisplayState 
 import { buildStatusLine } from "../layout.ts";
 import { SEGMENTS } from "../segments.ts";
 import { DEFAULT_FEEDS, DEFAULT_SEGMENTS, resolveEffectiveSettings, sanitizeFeeds } from "../settings.ts";
+import { theme } from "../theme.ts";
 import type { FeedDisplayState, SegmentContext, StatusLineFeed } from "../types.ts";
 import { feedKey } from "../utils.ts";
 
@@ -199,7 +200,7 @@ test("missing display state remains active, while fading and hidden feeds render
 	const rendered = renderFeeds(feeds, data, states);
 	assert.equal(stripAnsi(rendered.content), "N42");
 	assert.equal(rendered.visible, true);
-	assert.notEqual(rendered.content, renderFeeds([count], { "my-ext/metrics": { count: 42 } }).content);
+	assert.equal(rendered.content, theme.fadeFg("dim", "statusLineBg", 2, "N42"));
 });
 
 test("tracking preserves equal values and resets changed values per field", () => {

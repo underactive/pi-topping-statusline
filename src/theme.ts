@@ -193,7 +193,10 @@ export type StatusColor =
 	| "statusLineContextElevated"
 	| "statusLineStaged"
 	| "statusLineDirty"
-	| "statusLineUntracked";
+	| "statusLineUntracked"
+	| "statusLineBg";
+
+const STATUS_LINE_BG: ColorValue = "#121212";
 
 const FG_COLORS: Record<StatusColor, ColorValue> = {
 	accent: "#febc38",
@@ -213,9 +216,8 @@ const FG_COLORS: Record<StatusColor, ColorValue> = {
 	statusLineStaged: 70,
 	statusLineDirty: 178,
 	statusLineUntracked: 39,
+	statusLineBg: STATUS_LINE_BG,
 };
-
-const STATUS_LINE_BG: ColorValue = "#121212";
 
 /** Dominant palette hexes the session accent must not collide with. */
 export const MAJOR_COLOR_HEXES = [
