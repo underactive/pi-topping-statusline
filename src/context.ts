@@ -113,7 +113,7 @@ export class SegmentContextBuilder {
 
 	#feedData: Record<string, unknown> = emptyFeedData();
 	#feedsScannedAt = 0;
-	#feedsScanned = "";
+	#feedsScannedRef: readonly string[] | undefined;
 	#runStartedAt = 0;
 	#feedTracking = new Map<string, FeedTracking>();
 	#feedTimer: ReturnType<typeof setTimeout> | undefined;
@@ -144,7 +144,7 @@ export class SegmentContextBuilder {
 		this.#runStartedAt = Date.now();
 		this.#feedData = emptyFeedData();
 		this.#feedsScannedAt = 0;
-		this.#feedsScanned = "";
+		this.#feedsScannedRef = undefined;
 		this.#clearFeedLifecycle();
 		if (this.#repoCwd !== ctx.cwd) {
 			this.#resetGitState();
@@ -437,9 +437,8 @@ export class SegmentContextBuilder {
 		let feedDisplayState: Record<string, FeedDisplayState> | undefined;
 		if (include.feeds.length > 0) {
 			// Editing the subscription list mid-session must not wait out the TTL.
-			const key = include.feeds.join("\u0000");
-			if (key !== this.#feedsScanned || now - this.#feedsScannedAt > FEED_TTL_MS) {
-				this.#feedsScanned = key;
+			if (include.feeds !== this.#feedsScannedRef || now - this.#feedsScannedAt > FEED_TTL_MS) {
+				this.#feedsScannedRef = include.feeds;
 				this.#refreshFeeds(include.feeds, now);
 			}
 			feedDisplayState = this.#syncFeedTracking(options.feeds, now);
