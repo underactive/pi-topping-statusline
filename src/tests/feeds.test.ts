@@ -26,6 +26,9 @@ const OPTIONS = resolveEffectiveSettings({}).segmentOptions;
 const INCLUDE = { git: false, pr: false, piStats: false, tokenRate: false, feeds: [SAVINGS] };
 /** Outside any repo, so the builder's git probes stay inert. */
 const CWD = "/tmp/pi-topping-statusline-tests";
+/** Match the builder's intentional prototype-less feed map in deep equality assertions. */
+const feedMap = (entries: Record<string, unknown> = {}): Record<string, unknown> =>
+	Object.assign(Object.create(null) as Record<string, unknown>, entries);
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const stripAnsi = (text: string) => text.replace(/\x1b\[[0-9;]*m/g, "");
@@ -97,7 +100,7 @@ const renderFeedRows = (feedData: Record<string, unknown> | undefined, format: S
 
 test("hidden when no publisher has emitted", async () => {
 	const ctx = await contextAfterEmitting(() => []);
-	assert.deepEqual(ctx.feedData, {});
+	assert.deepEqual(ctx.feedData, feedMap());
 	assert.equal(SEGMENTS.feeds.render(ctx).visible, false);
 });
 
@@ -126,17 +129,17 @@ test("a later custom_message sharing the customType cannot shadow a real entry",
 		details: { savedUsd: 99 },
 	} as SessionEntry;
 	const ctx = await contextAfterEmitting(() => [feedEntry({ savedUsd: 4.2 }), decoy]);
-	assert.deepEqual(ctx.feedData, { [SAVINGS]: { savedUsd: 4.2 } });
+	assert.deepEqual(ctx.feedData, feedMap({ [SAVINGS]: { savedUsd: 4.2 } }));
 });
 
 test("unsubscribed customTypes are ignored", async () => {
 	const ctx = await contextAfterEmitting(() => [feedEntry({ savedUsd: 9 }, "other-ext/thing")]);
-	assert.deepEqual(ctx.feedData, {});
+	assert.deepEqual(ctx.feedData, feedMap());
 });
 
 test("the newest matching entry wins", async () => {
 	const ctx = await contextAfterEmitting(() => [feedEntry({ savedUsd: 0.5 }), feedEntry({ savedUsd: 1.2345 })]);
-	assert.deepEqual(ctx.feedData, { [SAVINGS]: { savedUsd: 1.2345 } });
+	assert.deepEqual(ctx.feedData, feedMap({ [SAVINGS]: { savedUsd: 1.2345 } }));
 });
 
 test("several feeds are collected in one pass and render together", async () => {
@@ -284,7 +287,7 @@ test("feed transition timers request a render and are cleared by attach and disp
 test("entries predating this run are stale and render nothing", async () => {
 	const priorRun = new Date(Date.now() - 60_000).toISOString();
 	const ctx = await contextAfterEmitting(() => [feedEntry({ savedUsd: 7.77 }, SAVINGS, priorRun)]);
-	assert.deepEqual(ctx.feedData, {}, "a prior run's figure must not surface");
+	assert.deepEqual(ctx.feedData, feedMap(), "a prior run's figure must not surface");
 });
 
 test("the first emission of the new run supersedes a stale one", async () => {
@@ -293,7 +296,7 @@ test("the first emission of the new run supersedes a stale one", async () => {
 		feedEntry({ savedUsd: 7.77 }, SAVINGS, priorRun),
 		feedEntry({ savedUsd: 0.42 }),
 	]);
-	assert.deepEqual(ctx.feedData, { [SAVINGS]: { savedUsd: 0.42 } });
+	assert.deepEqual(ctx.feedData, feedMap({ [SAVINGS]: { savedUsd: 0.42 } }));
 });
 
 test("session replacement inside the TTL window drops the cached payload", async () => {
@@ -303,7 +306,7 @@ test("session replacement inside the TTL window drops the cached payload", async
 	builder.attach(fakeCtx(entries));
 	await sleep(3);
 	entries.push(feedEntry({ savedUsd: 4.2 }));
-	assert.deepEqual(builder.build(80, OPTIONS, INCLUDE, undefined).feedData, { [SAVINGS]: { savedUsd: 4.2 } });
+	assert.deepEqual(builder.build(80, OPTIONS, INCLUDE, undefined).feedData, feedMap({ [SAVINGS]: { savedUsd: 4.2 } }));
 
 	// /new, /resume and /fork replace the session in-process; publishers reset,
 	// so the entries above now belong to a previous run.
@@ -311,7 +314,7 @@ test("session replacement inside the TTL window drops the cached payload", async
 	builder.attach(fakeCtx(entries));
 	assert.deepEqual(
 		builder.build(80, OPTIONS, INCLUDE, undefined).feedData,
-		{},
+		feedMap(),
 		"must rescan on attach rather than serve the prior session's payload",
 	);
 });
@@ -327,7 +330,7 @@ test("no stale frame is observable across the whole TTL window", async () => {
 	await sleep(3);
 	builder.attach(fakeCtx(entries));
 	for (let frame = 0; frame < 10; frame++) {
-		assert.deepEqual(builder.build(80, OPTIONS, INCLUDE, undefined).feedData, {}, `frame ${frame} leaked`);
+		assert.deepEqual(builder.build(80, OPTIONS, INCLUDE, undefined).feedData, feedMap(), `frame ${frame} leaked`);
 		await sleep(30);
 	}
 });
@@ -372,7 +375,7 @@ test("changing the subscription list rescans without waiting out the TTL", async
 	// Adding a feed in the settings menu must take effect on the next frame.
 	const ctx = builder.build(80, OPTIONS, { ...INCLUDE, feeds: [SAVINGS, "my-ext/tokens"] }, undefined);
 	assert.equal(scans, 2);
-	assert.deepEqual(ctx.feedData, { [SAVINGS]: { savedUsd: 1 }, "my-ext/tokens": { count: 7 } });
+	assert.deepEqual(ctx.feedData, feedMap({ [SAVINGS]: { savedUsd: 1 }, "my-ext/tokens": { count: 7 } }));
 });
 
 test("a fresh emission appears once the TTL lapses", async () => {
@@ -383,9 +386,9 @@ test("a fresh emission appears once the TTL lapses", async () => {
 
 	await sleep(3);
 	entries.push(feedEntry({ savedUsd: 0.01 }));
-	assert.deepEqual(builder.build(80, OPTIONS, INCLUDE, undefined).feedData, {}, "still inside the TTL");
+	assert.deepEqual(builder.build(80, OPTIONS, INCLUDE, undefined).feedData, feedMap(), "still inside the TTL");
 	await sleep(2_100);
-	assert.deepEqual(builder.build(80, OPTIONS, INCLUDE, undefined).feedData, { [SAVINGS]: { savedUsd: 0.01 } });
+	assert.deepEqual(builder.build(80, OPTIONS, INCLUDE, undefined).feedData, feedMap({ [SAVINGS]: { savedUsd: 0.01 } }));
 });
 
 // ── formats ────────────────────────────────────────────────────────────────
