@@ -13,6 +13,7 @@ import { formatContextUsage } from "./context-thresholds.js";
 import { MAJOR_COLOR_HEXES, hexToFgAnsi, theme } from "./theme.js";
 import {
 	clampPathLength,
+	feedKey,
 	getSessionAccentHex,
 	sanitizeLabel,
 	sanitizeStatusText,
@@ -269,11 +270,19 @@ const feedsSegment: StatusLineSegment = {
 			const payload = data[feed.customType];
 			if (payload == null || typeof payload !== "object") continue;
 			if (!Object.hasOwn(payload, feed.field)) continue;
+			const display = ctx.feedDisplayState?.[feedKey(feed.customType, feed.field)];
+			if (display?.phase === "hidden") continue;
 			const text = formatFeedValue((payload as Record<string, unknown>)[feed.field], feed.format);
-			if (text !== undefined) parts.push(`${sanitizeLabel(feed.prefix)}${text}`);
+			if (text === undefined) continue;
+			const content = `${sanitizeLabel(feed.prefix)}${text}`;
+			parts.push(
+				display?.phase === "fading"
+					? theme.fadeFg("success", "dim", display.fadeShade, content)
+					: theme.fg("success", content),
+			);
 		}
 		if (parts.length === 0) return INVISIBLE;
-		return { content: theme.fg("success", parts.join(" ")), visible: true };
+		return { content: parts.join(" "), visible: true };
 	},
 };
 

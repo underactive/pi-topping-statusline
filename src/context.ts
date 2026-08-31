@@ -7,8 +7,11 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { SegmentContext, SegmentIncludes, StatusLineSegmentOptions, TokenRateDisplay } from "./types.js";
+import { FADE_SHADE_COUNT } from "./theme.js";
+import type { FeedDisplayState, SegmentContext, SegmentIncludes, StatusLineSegmentOptions, TokenRateDisplay } from "./types.js";
+import { feedKey } from "./utils.js";
 
 const GIT_STATUS_TTL_MS = 1_000;
 const BRANCH_POLL_TTL_MS = 5_000;
@@ -16,6 +19,10 @@ const EXEC_TIMEOUT_MS = 2_000;
 
 /** getEntries() filters and copies the whole session, so rescans are rate-limited. */
 const FEED_TTL_MS = 2_000;
+/** Unchanged feed values remain fully visible for five minutes. */
+export const FEED_HOLD_MS = 5 * 60 * 1_000;
+/** Match the existing token-rate fade cadence. */
+export const FEED_FADE_MS = 500;
 
 /** Prototype-less map — feed keys are publisher-supplied customTypes. */
 const emptyFeedData = (): Record<string, unknown> => Object.create(null);
@@ -30,6 +37,28 @@ interface RepoInfo {
 	gitDir: string;
 	commonDir: string;
 	toplevel: string;
+}
+
+interface FeedTracking {
+	value: unknown;
+	changedAt: number;
+}
+
+/** Pure feed lifecycle snapshot, including a clock moving backwards. */
+export function getFeedDisplayState(changedAt: number, now: number): FeedDisplayState {
+	const elapsed = Math.max(0, now - changedAt);
+	if (elapsed < FEED_HOLD_MS) return { phase: "active", fadeShade: 0 };
+	if (elapsed >= FEED_HOLD_MS + FEED_FADE_MS) return { phase: "hidden", fadeShade: FADE_SHADE_COUNT - 1 };
+	return {
+		phase: "fading",
+		fadeShade: Math.min(FADE_SHADE_COUNT - 1, Math.floor((elapsed - FEED_HOLD_MS) / (FEED_FADE_MS / FADE_SHADE_COUNT))),
+	};
+}
+
+function feedValuesEqual(a: unknown, b: unknown): boolean {
+	if (Object.is(a, b)) return true;
+	if ((typeof a !== "object" || a === null) && (typeof b !== "object" || b === null)) return false;
+	return isDeepStrictEqual(a, b);
 }
 
 function deriveContextUsage(ctx: ExtensionContext | undefined): {
@@ -92,6 +121,8 @@ export class SegmentContextBuilder {
 	#feedsScannedAt = 0;
 	#feedsScanned = "";
 	#runStartedAt = 0;
+	#feedTracking = new Map<string, FeedTracking>();
+	#feedTimer: ReturnType<typeof setTimeout> | undefined;
 
 	constructor(pi: ExtensionAPI) {
 		this.#pi = pi;
@@ -119,6 +150,7 @@ export class SegmentContextBuilder {
 		this.#feedData = emptyFeedData();
 		this.#feedsScannedAt = 0;
 		this.#feedsScanned = "";
+		this.#clearFeedLifecycle();
 		if (this.#repoCwd !== ctx.cwd) {
 			this.#resetGitState();
 			this.#repoCwd = ctx.cwd;
@@ -131,6 +163,13 @@ export class SegmentContextBuilder {
 		this.#headWatcher = undefined;
 		this.#watcherOk = false;
 		this.#ctx = undefined;
+		this.#clearFeedLifecycle();
+	}
+
+	#clearFeedLifecycle(): void {
+		this.#feedTracking.clear();
+		if (this.#feedTimer) clearTimeout(this.#feedTimer);
+		this.#feedTimer = undefined;
 	}
 
 	// ── git plumbing ─────────────────────────────────────────────────────────
@@ -288,6 +327,52 @@ export class SegmentContextBuilder {
 		}
 	}
 
+	#syncFeedTracking(feeds: StatusLineSegmentOptions["feeds"], now: number): Record<string, FeedDisplayState> {
+		const configured = new Set<string>();
+		for (const feed of feeds) {
+			const key = feedKey(feed.customType, feed.field);
+			configured.add(key);
+			const payload = this.#feedData[feed.customType];
+			if (payload === null || typeof payload !== "object" || !Object.hasOwn(payload, feed.field)) {
+				this.#feedTracking.delete(key);
+				continue;
+			}
+			const value = (payload as Record<string, unknown>)[feed.field];
+			const prior = this.#feedTracking.get(key);
+			if (!prior || !feedValuesEqual(prior.value, value)) this.#feedTracking.set(key, { value, changedAt: now });
+		}
+		for (const key of this.#feedTracking.keys()) {
+			if (!configured.has(key)) this.#feedTracking.delete(key);
+		}
+
+		const states: Record<string, FeedDisplayState> = Object.create(null);
+		for (const [key, tracking] of this.#feedTracking) states[key] = getFeedDisplayState(tracking.changedAt, now);
+		this.#scheduleFeedTransition(now);
+		return states;
+	}
+
+	#scheduleFeedTransition(now: number): void {
+		if (this.#feedTimer) clearTimeout(this.#feedTimer);
+		this.#feedTimer = undefined;
+		let nextAt: number | undefined;
+		for (const { changedAt } of this.#feedTracking.values()) {
+			const display = getFeedDisplayState(changedAt, now);
+			if (display.phase === "hidden") continue;
+			const next =
+				display.phase === "active"
+					? changedAt + FEED_HOLD_MS
+					: changedAt + FEED_HOLD_MS + (display.fadeShade + 1) * (FEED_FADE_MS / FADE_SHADE_COUNT);
+			if (nextAt === undefined || next < nextAt) nextAt = next;
+		}
+		if (nextAt === undefined) return;
+		this.#feedTimer = setTimeout(() => {
+			this.#feedTimer = undefined;
+			this.#requestRender();
+			this.#scheduleFeedTransition(Date.now());
+		}, Math.max(1, nextAt - now));
+		this.#feedTimer.unref?.();
+	}
+
 	async #refreshPr(): Promise<void> {
 		const cwd = this.#repoCwd;
 		const branch = this.#branch;
@@ -350,6 +435,7 @@ export class SegmentContextBuilder {
 			if (include.pr) void this.#refreshPr();
 		}
 
+		let feedDisplayState: Record<string, FeedDisplayState> | undefined;
 		if (include.feeds.length > 0) {
 			// Editing the subscription list mid-session must not wait out the TTL.
 			const key = include.feeds.join("\u0000");
@@ -357,6 +443,9 @@ export class SegmentContextBuilder {
 				this.#feedsScanned = key;
 				this.#refreshFeeds(include.feeds, now);
 			}
+			feedDisplayState = this.#syncFeedTracking(options.feeds, now);
+		} else {
+			this.#clearFeedLifecycle();
 		}
 
 		const model = ctx?.model
@@ -389,6 +478,7 @@ export class SegmentContextBuilder {
 			piStats: include.piStats ? this.#piStatsProvider?.(width) : undefined,
 			tokenRate: include.tokenRate ? this.#tokenRateProvider?.() : undefined,
 			feedData: include.feeds.length > 0 ? { ...this.#feedData } : undefined,
+			feedDisplayState,
 		};
 	}
 }

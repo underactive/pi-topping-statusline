@@ -85,6 +85,11 @@ export function withIcon(icon: string, text: string): string {
 	return icon ? `${icon} ${text}` : text;
 }
 
+/** Unambiguous identity for one configured field of a feed publisher. */
+export function feedKey(customType: string, field: string): string {
+	return `${customType}\u0000${field}`;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Session accent (djb2 hue hash, dark warm band, collision avoidance)
 // ═══════════════════════════════════════════════════════════════════════════

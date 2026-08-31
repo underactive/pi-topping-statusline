@@ -129,7 +129,9 @@ early in a session, before the cache-write premium is amortized by reads. Above 
 
 A feed contributes nothing when its publisher is absent, has published nothing this run, or
 reports a value its format suppresses; the segment disappears entirely once every feed is
-quiet, so it costs nothing to leave switched on. Publishers typically reset per process run,
+quiet, so it costs nothing to leave switched on. A value that remains unchanged for five
+minutes fades to dim over 500ms and then hides; it returns at full color only when that
+configured field's value changes. Publishers typically reset per process run,
 so entries predating the current session start (`--resume`, `/reload`, `/new`, fork) are
 ignored rather than shown as a stale total. During steady-state rendering, the session is
 re-read at most once every two seconds, because pi copies the whole entry list on each read

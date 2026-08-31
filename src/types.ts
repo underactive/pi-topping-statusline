@@ -142,6 +142,19 @@ export interface SegmentContext {
 	 * entries, and those must not be shown as current.
 	 */
 	feedData: Record<string, unknown> | undefined;
+	/**
+	 * Lifecycle state per configured feed field. Missing state is treated as
+	 * active so previews and manually constructed contexts retain full color.
+	 */
+	feedDisplayState?: Record<string, FeedDisplayState>;
+}
+
+export type FeedPhase = "active" | "fading" | "hidden";
+
+export interface FeedDisplayState {
+	phase: FeedPhase;
+	/** Discrete fade step (0..FADE_SHADE_COUNT-1); meaningful while fading. */
+	fadeShade: number;
 }
 
 export type TokenRatePhase = "active" | "fading" | "idle";

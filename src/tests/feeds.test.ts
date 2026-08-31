@@ -13,11 +13,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ExtensionAPI, ExtensionContext, SessionEntry } from "@earendil-works/pi-coding-agent";
 import { renderBoxRowIfVisible } from "../box.ts";
-import { SegmentContextBuilder } from "../context.ts";
+import { FEED_FADE_MS, FEED_HOLD_MS, SegmentContextBuilder, getFeedDisplayState } from "../context.ts";
 import { buildStatusLine } from "../layout.ts";
 import { SEGMENTS } from "../segments.ts";
 import { DEFAULT_FEEDS, DEFAULT_SEGMENTS, resolveEffectiveSettings, sanitizeFeeds } from "../settings.ts";
-import type { SegmentContext, StatusLineFeed } from "../types.ts";
+import type { FeedDisplayState, SegmentContext, StatusLineFeed } from "../types.ts";
+import { feedKey } from "../utils.ts";
 
 const SAVINGS = "pi-prompt-cache/savings";
 const OPTIONS = resolveEffectiveSettings({}).segmentOptions;
@@ -62,8 +63,11 @@ async function contextAfterEmitting(
 
 const BASE = await contextAfterEmitting(() => []);
 /** Render the segment against explicit feed config and payloads. */
-const renderFeeds = (feeds: StatusLineFeed[], feedData: Record<string, unknown> | undefined) =>
-	SEGMENTS.feeds.render({ ...BASE, options: { ...BASE.options, feeds }, feedData });
+const renderFeeds = (
+	feeds: StatusLineFeed[],
+	feedData: Record<string, unknown> | undefined,
+	feedDisplayState?: Record<string, FeedDisplayState>,
+) => SEGMENTS.feeds.render({ ...BASE, options: { ...BASE.options, feeds }, feedData, feedDisplayState });
 const savingsFeed = (format: StatusLineFeed["format"] = "currency", prefix = "CS"): StatusLineFeed => ({
 	customType: SAVINGS,
 	field: "savedUsd",
@@ -163,6 +167,115 @@ test("missing fields and malformed payloads do not surface", () => {
 	assert.equal(renderSaved(undefined).visible, false);
 	assert.equal(renderFeeds([savingsFeed()], { [SAVINGS]: { other: 1 } }).visible, false);
 	assert.equal(renderFeeds([savingsFeed()], { [SAVINGS]: 5 }).visible, false, "payload must be an object");
+});
+
+// ── stale-feed lifecycle ───────────────────────────────────────────────────
+
+test("feed display state changes at exact hold and fade boundaries", () => {
+	const changedAt = 1_000;
+	assert.deepEqual(getFeedDisplayState(changedAt, changedAt + FEED_HOLD_MS - 1), { phase: "active", fadeShade: 0 });
+	for (let shade = 0; shade < 5; shade++) {
+		assert.deepEqual(getFeedDisplayState(changedAt, changedAt + FEED_HOLD_MS + shade * (FEED_FADE_MS / 5)), {
+			phase: "fading",
+			fadeShade: shade,
+		});
+	}
+	assert.deepEqual(getFeedDisplayState(changedAt, changedAt + FEED_HOLD_MS + FEED_FADE_MS), {
+		phase: "hidden",
+		fadeShade: 4,
+	});
+});
+
+test("missing display state remains active, while fading and hidden feeds render independently", () => {
+	const count: StatusLineFeed = { customType: "my-ext/metrics", field: "count", prefix: "N", format: "number" };
+	const feeds = [savingsFeed(), count];
+	const data = { [SAVINGS]: { savedUsd: 1.5 }, "my-ext/metrics": { count: 42 } };
+	assert.equal(stripAnsi(renderFeeds(feeds, data).content), "CS$1.50 N42");
+
+	const states = {
+		[feedKey(SAVINGS, "savedUsd")]: { phase: "hidden", fadeShade: 4 },
+		[feedKey("my-ext/metrics", "count")]: { phase: "fading", fadeShade: 2 },
+	} satisfies Record<string, FeedDisplayState>;
+	const rendered = renderFeeds(feeds, data, states);
+	assert.equal(stripAnsi(rendered.content), "N42");
+	assert.equal(rendered.visible, true);
+	assert.notEqual(rendered.content, renderFeeds([count], { "my-ext/metrics": { count: 42 } }).content);
+});
+
+test("tracking preserves equal values and resets changed values per field", () => {
+	const originalNow = Date.now;
+	let now = 1_000_000;
+	Date.now = () => now;
+	try {
+		const entries: SessionEntry[] = [];
+		const builder = new SegmentContextBuilder(fakePi);
+		builder.attach(fakeCtx(entries));
+		entries.push(feedEntry({ savedUsd: { total: 1 }, count: 2 }, SAVINGS, new Date(now).toISOString()));
+		const feeds: StatusLineFeed[] = [
+			{ customType: SAVINGS, field: "savedUsd", prefix: "A", format: "text" },
+			{ customType: SAVINGS, field: "count", prefix: "B", format: "number" },
+		];
+		const options = { ...OPTIONS, feeds };
+		let ctx = builder.build(80, options, INCLUDE, undefined);
+		assert.equal(ctx.feedDisplayState?.[feedKey(SAVINGS, "savedUsd")]?.phase, "active");
+
+		now += FEED_HOLD_MS + 1;
+		entries.push(feedEntry({ savedUsd: { total: 1 }, count: 2 }, SAVINGS, new Date(now).toISOString()));
+		ctx = builder.build(80, options, INCLUDE, undefined);
+		assert.equal(ctx.feedDisplayState?.[feedKey(SAVINGS, "savedUsd")]?.phase, "fading", "cloned equal object must not reset");
+		assert.equal(ctx.feedDisplayState?.[feedKey(SAVINGS, "count")]?.phase, "fading", "equal primitive must not reset");
+
+		now += 2_001;
+		entries.push(feedEntry({ savedUsd: { total: 2 }, count: 2 }, SAVINGS, new Date(now).toISOString()));
+		ctx = builder.build(80, options, INCLUDE, undefined);
+		assert.equal(ctx.feedDisplayState?.[feedKey(SAVINGS, "savedUsd")]?.phase, "active", "changed hidden/fading field reappears");
+		assert.equal(ctx.feedDisplayState?.[feedKey(SAVINGS, "count")]?.phase, "hidden", "fields sharing a publisher age independently");
+
+		now += 2_001;
+		entries.push(feedEntry({ savedUsd: { total: 2 } }, SAVINGS, new Date(now).toISOString()));
+		ctx = builder.build(80, options, INCLUDE, undefined);
+		assert.equal(ctx.feedDisplayState?.[feedKey(SAVINGS, "count")], undefined, "missing fields clear tracking");
+		ctx = builder.build(80, { ...options, feeds: [feeds[0]!] }, INCLUDE, undefined);
+		assert.equal(ctx.feedDisplayState?.[feedKey(SAVINGS, "count")], undefined, "removed subscriptions stay pruned");
+		builder.dispose();
+	} finally {
+		Date.now = originalNow;
+	}
+});
+
+test("feed transition timers request a render and are cleared by attach and dispose", () => {
+	const originalNow = Date.now;
+	const originalSetTimeout = globalThis.setTimeout;
+	const originalClearTimeout = globalThis.clearTimeout;
+	let scheduled: (() => void) | undefined;
+	let cleared = 0;
+	Date.now = () => 1_000_000;
+	globalThis.setTimeout = ((callback: () => void) => {
+		scheduled = callback;
+		return { unref() {} } as unknown as ReturnType<typeof setTimeout>;
+	}) as typeof setTimeout;
+	globalThis.clearTimeout = (() => {
+		cleared++;
+	}) as typeof clearTimeout;
+	try {
+		const entries = [feedEntry({ savedUsd: 1 }, SAVINGS, new Date(Date.now()).toISOString())];
+		const builder = new SegmentContextBuilder(fakePi);
+		let renders = 0;
+		builder.setRequestRender(() => renders++);
+		builder.attach(fakeCtx(entries));
+		builder.build(80, OPTIONS, INCLUDE, undefined);
+		assert.ok(scheduled, "an active feed schedules its stale transition");
+		scheduled?.();
+		assert.equal(renders, 1, "the transition wakes the renderer");
+		builder.attach(fakeCtx(entries));
+		builder.build(80, OPTIONS, INCLUDE, undefined);
+		builder.dispose();
+		assert.ok(cleared >= 2, "attach and dispose clear pending feed timers");
+	} finally {
+		Date.now = originalNow;
+		globalThis.setTimeout = originalSetTimeout;
+		globalThis.clearTimeout = originalClearTimeout;
+	}
 });
 
 // ── the per-run reset ──────────────────────────────────────────────────────

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Fade unchanged feed values after five minutes and hide them until they change
+
 ### Fixed
 
 - Avoid reserving an empty footer row when no bottom statusline content is visible
