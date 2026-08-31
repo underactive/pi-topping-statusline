@@ -65,10 +65,7 @@ export function clampPathLength(pwd: string, maxLen: number): string {
 
 /** Strip ANSI/VT escapes, map control chars to spaces, collapse whitespace. */
 export function sanitizeStatusText(text: string): string {
-	return stripVTControlCharacters(text)
-		.replace(/[\u0000-\u001f\u007f-\u009f]/g, " ")
-		.replace(/ +/g, " ")
-		.trim();
+	return sanitizeLabel(text).trim();
 }
 
 /**
