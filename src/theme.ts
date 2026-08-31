@@ -277,11 +277,14 @@ function rgbTo256(r: number, g: number, b: number): number {
 	return 16 + 36 * scale(r) + 6 * scale(g) + scale(b);
 }
 
+function rgbToFgAnsi(r: number, g: number, b: number, mode: ColorMode): string {
+	return mode === "truecolor" ? `\x1b[38;2;${r};${g};${b}m` : `\x1b[38;5;${rgbTo256(r, g, b)}m`;
+}
+
 export function hexToFgAnsi(hex: string, mode: ColorMode = detectColorMode()): string {
 	const rgb = parseHex(hex);
 	if (!rgb) return "";
-	const [r, g, b] = rgb;
-	return mode === "truecolor" ? `\x1b[38;2;${r};${g};${b}m` : `\x1b[38;5;${rgbTo256(r, g, b)}m`;
+	return rgbToFgAnsi(...rgb, mode);
 }
 
 function fgAnsi(color: ColorValue, mode: ColorMode): string {
@@ -363,8 +366,7 @@ class StatusTheme {
 		const r = Math.round(a[0] * (1 - eased) + b[0] * eased);
 		const g = Math.round(a[1] * (1 - eased) + b[1] * eased);
 		const bl = Math.round(a[2] * (1 - eased) + b[2] * eased);
-		const ansi =
-			this.#mode === "truecolor" ? `\x1b[38;2;${r};${g};${bl}m` : `\x1b[38;5;${rgbTo256(r, g, bl)}m`;
+		const ansi = rgbToFgAnsi(r, g, bl, this.#mode);
 		return `${ansi}${text}\x1b[39m`;
 	}
 }
