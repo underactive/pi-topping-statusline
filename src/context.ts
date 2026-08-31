@@ -55,12 +55,6 @@ export function getFeedDisplayState(changedAt: number, now: number): FeedDisplay
 	};
 }
 
-function feedValuesEqual(a: unknown, b: unknown): boolean {
-	if (Object.is(a, b)) return true;
-	if ((typeof a !== "object" || a === null) && (typeof b !== "object" || b === null)) return false;
-	return isDeepStrictEqual(a, b);
-}
-
 function deriveContextUsage(ctx: ExtensionContext | undefined): {
 	contextWindow: number;
 	tokens: number | undefined;
@@ -339,7 +333,7 @@ export class SegmentContextBuilder {
 			}
 			const value = (payload as Record<string, unknown>)[feed.field];
 			const prior = this.#feedTracking.get(key);
-			if (!prior || !feedValuesEqual(prior.value, value)) this.#feedTracking.set(key, { value, changedAt: now });
+			if (!prior || !isDeepStrictEqual(prior.value, value)) this.#feedTracking.set(key, { value, changedAt: now });
 		}
 		for (const key of this.#feedTracking.keys()) {
 			if (!configured.has(key)) this.#feedTracking.delete(key);
