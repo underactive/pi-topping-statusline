@@ -257,8 +257,8 @@ function formatFeedValue(value: unknown, format: FeedFormat): string | undefined
 /**
  * Values published by other extensions as custom session entries, each shown
  * as its configured prefix followed by the value. A feed contributes nothing
- * when its publisher is absent, has published nothing this run, or reports a
- * value the configured format suppresses.
+ * when its publisher is absent, has published nothing this run, reports a
+ * value the configured format suppresses, or has faded out after five minutes unchanged.
  */
 const feedsSegment: StatusLineSegment = {
 	id: "feeds",
