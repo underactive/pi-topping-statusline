@@ -117,6 +117,7 @@ export class SegmentContextBuilder {
 	#runStartedAt = 0;
 	#feedTracking = new Map<string, FeedTracking>();
 	#feedTimer: ReturnType<typeof setTimeout> | undefined;
+	#feedTimerAt: number | undefined;
 
 	constructor(pi: ExtensionAPI) {
 		this.#pi = pi;
@@ -164,6 +165,7 @@ export class SegmentContextBuilder {
 		this.#feedTracking.clear();
 		if (this.#feedTimer) clearTimeout(this.#feedTimer);
 		this.#feedTimer = undefined;
+		this.#feedTimerAt = undefined;
 	}
 
 	// ── git plumbing ─────────────────────────────────────────────────────────
@@ -346,8 +348,6 @@ export class SegmentContextBuilder {
 	}
 
 	#scheduleFeedTransition(now: number): void {
-		if (this.#feedTimer) clearTimeout(this.#feedTimer);
-		this.#feedTimer = undefined;
 		let nextAt: number | undefined;
 		for (const { changedAt } of this.#feedTracking.values()) {
 			const display = getFeedDisplayState(changedAt, now);
@@ -358,9 +358,14 @@ export class SegmentContextBuilder {
 					: changedAt + FEED_HOLD_MS + (display.fadeShade + 1) * (FEED_FADE_MS / FADE_SHADE_COUNT);
 			if (nextAt === undefined || next < nextAt) nextAt = next;
 		}
+		if (this.#feedTimer && this.#feedTimerAt === nextAt) return;
+		if (this.#feedTimer) clearTimeout(this.#feedTimer);
+		this.#feedTimer = undefined;
+		this.#feedTimerAt = nextAt;
 		if (nextAt === undefined) return;
 		this.#feedTimer = setTimeout(() => {
 			this.#feedTimer = undefined;
+			this.#feedTimerAt = undefined;
 			this.#requestRender();
 			this.#scheduleFeedTransition(Date.now());
 		}, Math.max(1, nextAt - now));
