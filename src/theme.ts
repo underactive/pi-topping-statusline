@@ -248,7 +248,7 @@ export function parseHex(hex: string): [number, number, number] | undefined {
 	return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
 }
 
-/** Number of discrete, eased shades used for the token-rate fade (pi-topping). */
+/** Number of discrete, eased shades used for the token-rate and feed fades (pi-topping). */
 export const FADE_SHADE_COUNT = 5;
 
 /** Resolve an xterm-256 palette index to RGB (16–231 cube, 232–255 grayscale). */
