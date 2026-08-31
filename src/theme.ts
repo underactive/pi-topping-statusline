@@ -178,7 +178,6 @@ type ColorValue = string | number;
 
 export type StatusColor =
 	| "accent"
-	| "success"
 	| "error"
 	| "warning"
 	| "muted"
@@ -200,7 +199,6 @@ const STATUS_LINE_BG: ColorValue = "#121212";
 
 const FG_COLORS: Record<StatusColor, ColorValue> = {
 	accent: "#febc38",
-	success: "#89d281",
 	error: "#fc3a4b",
 	warning: "#e4c00f",
 	muted: "#777d88",
