@@ -7,13 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4]
+
 ### Added
 
+- Fade feed values into the statusline background
 - Fade unchanged feed values after five minutes and hide them until they change
+
+### Changed
+
+- Update pi dependencies to 0.84.4
+- Avoid copying feed data on every render
+- Avoid per-frame feed signature allocations
+- Avoid redundant feed transition timer rescheduling
+- Avoid redundant feed value equality checks
+- Extract a shared RGB foreground ANSI formatter
+- Deduplicate status text sanitization
+- Document faded hidden feeds and shared fade shade count
 
 ### Fixed
 
 - Avoid reserving an empty footer row when no bottom statusline content is visible
+- Fall back to the plain editor when statusline rendering fails
+- Remove a redundant visible-width check in box rendering
+- Strip bidirectional and zero-width characters from status text
+
+### Removed
+
+- Remove the unused success status color
 
 ## [0.1.3]
 
