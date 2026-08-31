@@ -475,7 +475,7 @@ export class SegmentContextBuilder {
 			scrollHint,
 			piStats: include.piStats ? this.#piStatsProvider?.(width) : undefined,
 			tokenRate: include.tokenRate ? this.#tokenRateProvider?.() : undefined,
-			feedData: include.feeds.length > 0 ? { ...this.#feedData } : undefined,
+			feedData: include.feeds.length > 0 ? this.#feedData : undefined,
 			feedDisplayState,
 		};
 	}
