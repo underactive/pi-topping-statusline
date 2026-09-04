@@ -63,7 +63,7 @@ function deriveContextUsage(ctx: ExtensionContext | undefined): {
 	const usage = ctx?.getContextUsage();
 	const contextWindow = usage?.contextWindow ?? ctx?.model?.contextWindow ?? 0;
 	const tokens = usage?.tokens ?? undefined;
-	const percent = usage ? usage.percent : contextWindow > 0 && tokens != null ? (tokens / contextWindow) * 100 : null;
+	const percent = usage ? usage.percent : null;
 	return { contextWindow, tokens, percent };
 }
 
