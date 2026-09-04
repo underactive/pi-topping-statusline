@@ -78,17 +78,11 @@ export default function (pi: ExtensionAPI) {
 		workingFadeTimer = undefined;
 	};
 
-	// Pi re-reads embedWorkingStatus at every streaming start; the dist stores it
-	// as a plain field, so assigning through the readonly type keeps the editor in
-	// step with the setting. A capture held across a toggle is dropped so a stale
-	// indicator can never render as a frozen status.
 	const syncEmbed = (): void => {
 		if (!activeEditor || typeof activeEditor.setWorkingStatusIndicator !== "function") return;
-		const editor = activeEditor as CustomEditor & { embedWorkingStatus: boolean };
 		const next = state.effective.embedWorkingStatus;
-		if (editor.embedWorkingStatus === next) return;
-		editor.embedWorkingStatus = next;
-		editor.setWorkingStatusIndicator(undefined);
+		if (activeEditor.embedWorkingStatus === next) return;
+		activeCtx?.ui.setEditorComponent(ourFactory);
 	};
 
 	const requestRender = () => activeTui?.requestRender();
