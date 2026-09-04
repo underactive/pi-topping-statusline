@@ -111,11 +111,10 @@ test("fadeAnsi leaves text untouched at full opacity and sinks colors into the b
 	const styled = "\x1b[38;2;254;188;56mA\x1b[39m \x1b[48;5;70mB\x1b[49m";
 	assert.equal(theme.fadeAnsi(styled, 1), styled);
 	const sunk = theme.fadeAnsi(styled, 0);
-	assert.equal(stripAnsi(sunk), stripAnsi(styled));
-	assert.ok(!sunk.includes("254;188;56"), "accent fg blended away");
-	// #121212 is the bar background; every color plane lands on it, 49 is kept.
-	assert.ok(/38;2;18;18;18m|38;5;\d+m/.test(sunk));
-	assert.ok(sunk.includes("\x1b[49m"));
+	assert.equal(
+		sunk,
+		`${theme.getFgAnsi("statusLineBg")}A${theme.getFgAnsi("statusLineBg")} ${theme.getBgAnsi()}B\x1b[49m`,
+	);
 });
 
 test("easeFade is monotonic and pinned at both ends", () => {
