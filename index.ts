@@ -42,8 +42,6 @@ import { easeFade } from "./src/theme.js";
 import { theme } from "./src/theme.js";
 import { TokenRateMonitor } from "./src/token-rate.js";
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
-/** Structural view of pi's WorkingStatusIndicator, which the package does not export. */
-type BorderIndicator = { renderInBorder(width: number): string };
 
 /** Cross-fade budget when the embedded working status disappears: half out, half in. */
 const WORKING_FADE_MS = 750;
@@ -262,8 +260,7 @@ export default function (pi: ExtensionAPI) {
 				if (typeof own.setWorkingStatusIndicator === "function") {
 					const setIndicator = own.setWorkingStatusIndicator.bind(own);
 					own.setWorkingStatusIndicator = indicator => {
-						const captured = indicator as BorderIndicator | undefined;
-						embeddedWorkingStatus = captured ? width => captured.renderInBorder(width) : undefined;
+						embeddedWorkingStatus = indicator ? width => indicator.renderInBorder(width) : undefined;
 						setIndicator(indicator);
 					};
 				}
