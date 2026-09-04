@@ -79,10 +79,12 @@ export default function (pi: ExtensionAPI) {
 	};
 
 	const syncEmbed = (): void => {
-		if (!activeEditor || typeof activeEditor.setWorkingStatusIndicator !== "function") return;
+		const ctx = activeCtx;
+		const factory = ourFactory;
+		if (!activeEditor || !ctx || !factory) return;
 		const next = state.effective.embedWorkingStatus;
 		if (activeEditor.embedWorkingStatus === next) return;
-		activeCtx?.ui.setEditorComponent(ourFactory);
+		ctx.ui.setEditorComponent(factory);
 	};
 
 	const requestRender = () => activeTui?.requestRender();
