@@ -1,15 +1,16 @@
 /**
  * The bar layout engine, ported from oh-my-pi component.ts #buildStatusLine.
  *
- * Overflow strategy (in order): drop right segments right-to-left, shrink the
- * elastic `path` segment down to ~8 cells, drop left segments end-first while
- * protecting `path`. The gap between the two groups is filled with the
+ * Overflow strategy (in order): drop right segments right-to-left, truncate
+ * the embedded `working` status (no ellipsis, as pi's own border does), shrink
+ * the elastic `path` segment down to ~8 cells, drop left segments end-first
+ * while protecting `path`. The gap between the two groups is filled with the
  * box-horizontal glyph colored like the editor border, so it tracks the
  * thinking-level border color; the callback receives the gap's absolute
  * column and row in the box, so a caller can paint it as part of a
  * continuous border gradient (the rainbow effect).
  */
-import { visibleWidth } from "@earendil-works/pi-tui";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { renderSegment } from "./segments.js";
 import { getSeparator } from "./separators.js";
 import { theme } from "./theme.js";
@@ -111,6 +112,19 @@ export function buildStatusLine(
 		while (totalWidth() > width && right.length > 0) {
 			right.pop();
 			rightWidth = rightGroupWidth(right);
+		}
+		// The working status absorbs overflow first so the Pi symbol beside it
+		// survives on narrow terminals.
+		const workingIdx = leftSegIds.indexOf("working");
+		if (workingIdx >= 0 && totalWidth() > width) {
+			const available = visibleWidth(left[workingIdx]) - (totalWidth() - width);
+			if (available >= 1) {
+				left[workingIdx] = truncateToWidth(left[workingIdx], available, "");
+			} else {
+				left.splice(workingIdx, 1);
+				leftSegIds.splice(workingIdx, 1);
+			}
+			leftWidth = leftGroupWidth(left);
 		}
 		// Shrink path before dropping left segments — path is the only elastic segment
 		const pathIdx = leftSegIds.indexOf("path");

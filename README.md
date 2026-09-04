@@ -71,13 +71,13 @@ and apply live.
 
 | Section | Settings |
 | --- | --- |
-| Global | Transparent Segments · Separator (`powerline` `powerline-thin` `slash` `pipe` `ascii`) · Symbols (`nerdfont` `unicode` `ascii` — stored in settings.json as `nerd`/`unicode`/`ascii`) · Border style (`rounded` `heavy` `double` `single`) · Rainbow border on max thinking · Animate rainbow border |
+| Global | Transparent Segments · Separator (`powerline` `powerline-thin` `slash` `pipe` `ascii`) · Symbols (`nerdfont` `unicode` `ascii` — stored in settings.json as `nerd`/`unicode`/`ascii`) · Border style (`rounded` `heavy` `double` `single`) · Rainbow border on max thinking · Animate rainbow border · Embed 'Working' indicator |
 | Top Left Segment Group | Pi symbol · Model · Provider · Thinking level · Path · Git · PR |
 | Top Right Segment Group | Token rate · Session name |
 | Bottom Right Segment Group | Feeds · Token rate · Pi stats · Context bar · Context stats |
 | Bottom Left Segment Group | Scroll hint · Feeds · Token rate |
 | Feeds | One subscription per row: type · field · prefix · format, plus add/remove |
-| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on · Animate rainbow border on |
+| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on · Animate rainbow border on · Embed 'Working' indicator off |
 
 With **Rainbow border on max thinking** on (the default), cycling the thinking level to `max`
 replaces the border's fixed theme color with a rainbow: a full hue cycle distributed around the
@@ -86,6 +86,15 @@ border (~14s per rotation), like Apple Intelligence's screen border. Turn animat
 the rainbow at a fixed color phase without its repaint timer; the settings preview uses a stable
 phase too. Any other thinking level keeps the normal theme border color. Disable animation over
 slow SSH links or in terminals with expensive redraws while retaining the rainbow border.
+
+**Embed 'Working' indicator** (off by default) moves pi's streaming status — spinner, message,
+and any loader text a topping such as pi-topping supplies — out of its own row and into the
+top-left group, right after the Pi symbol and its chevron. The remaining left segments (model,
+path, git, PR) step aside while a response streams and return when it ends; the Pi symbol never
+moves. A status too long for the bar is truncated without an ellipsis, as pi's own border does.
+Requires pi 0.85 or later. Pi re-reads the opt-in at each streaming start, so a mid-stream toggle
+takes effect on the next response. Only the statusline's own editor opts in: when another
+extension owns the editor slot and is wrapped, pi keeps its standalone working row.
 
 ## Segments
 

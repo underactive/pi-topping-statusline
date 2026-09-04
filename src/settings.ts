@@ -93,6 +93,7 @@ function loadSettings(): StatusLineSettings {
 		if (raw.feeds !== undefined) settings.feeds = sanitizeFeeds(raw.feeds);
 		if (typeof raw.rainbowBorder === "boolean") settings.rainbowBorder = raw.rainbowBorder;
 		if (typeof raw.rainbowAnimation === "boolean") settings.rainbowAnimation = raw.rainbowAnimation;
+		if (typeof raw.embedWorkingStatus === "boolean") settings.embedWorkingStatus = raw.embedWorkingStatus;
 		return settings;
 	} catch {
 		// Missing or corrupt settings.json falls back to defaults.
@@ -155,6 +156,7 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 		bottomRightSegments,
 		rainbowBorder: settings.rainbowBorder ?? true,
 		rainbowAnimation: settings.rainbowAnimation ?? true,
+		embedWorkingStatus: settings.embedWorkingStatus ?? false,
 		includes,
 		segmentOptions: {
 			model: { showModel: seg.model, showProvider: seg.provider, showThinking: seg.thinking },
@@ -163,6 +165,16 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 			feeds,
 		},
 	};
+}
+
+/**
+ * The top-left group for one frame. While pi's working status is embedded,
+ * it stands in for every left segment except the leading Pi symbol, so the
+ * symbol and its chevron never move when a stream starts or ends.
+ */
+export function topLeftSegments(effective: EffectiveStatusLineSettings, working: boolean): StatusLineSegmentId[] {
+	if (!working) return effective.leftSegments;
+	return effective.leftSegments[0] === "pi" ? ["pi", "working"] : ["working"];
 }
 
 export interface SettingsState {

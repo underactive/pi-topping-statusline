@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add a default-off **Embed 'Working' indicator** setting (`embedWorkingStatus`) that opts the
+  statusline's own editor into pi 0.85's embedded working status and renders it in the top-left
+  group after the Pi symbol, in place of the other left segments, while a response streams
+- Add a `working` segment that passes pi's pre-rendered indicator through, truncated without an
+  ellipsis before any other left segment is dropped
+
+### Changed
+
+- Bump `@earendil-works/pi-ai`, `pi-coding-agent`, and `pi-tui` devDependencies to 0.85.0, and
+  add `@earendil-works/pi-server` as a devDependency because 0.85.0's `pi-coding-agent` imports
+  it without declaring it
+
 ## [0.1.4]
 
 ### Added

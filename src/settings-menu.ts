@@ -19,6 +19,7 @@ import {
 	saveSettings,
 	sanitizeFeeds,
 	SEPARATORS,
+	topLeftSegments,
 	type SettingsState,
 } from "./settings.js";
 import { theme, type BorderStyle, type SymbolPreset } from "./theme.js";
@@ -140,6 +141,11 @@ function buildSections(settings: StatusLineSettings): MenuSection[] {
 				label: "Animate rainbow border",
 				value: settings.rainbowAnimation ?? true,
 			},
+			{
+				id: "embedWorkingStatus",
+				label: "Embed 'Working' indicator",
+				value: settings.embedWorkingStatus ?? false,
+			},
 		],
 	};
 	return [
@@ -170,6 +176,7 @@ function valuesToSettings(values: Record<string, MenuValue>): StatusLineSettings
 		feeds: sanitizeFeeds(feedsFromValues(values)),
 		rainbowBorder: values.rainbowBorder === true,
 		rainbowAnimation: values.rainbowAnimation === true,
+		embedWorkingStatus: values.embedWorkingStatus === true,
 	};
 }
 
@@ -184,6 +191,8 @@ const CANNED_STATS = "↑ 12.4K ↓ 3.1K R 148K W 12K 92.3% $0.42";
 const CANNED_GIT = { branch: "main", status: { staged: 1, unstaged: 2, untracked: 3 } };
 const CANNED_PERCENT = 42;
 const CANNED_WINDOW = 200_000;
+/** What pi's border indicator looks like mid-stream with pi-topping's loader installed. */
+const CANNED_WORKING = "⠙ Mulling ⢾⣿⣿⣿⣿⣿⢾⢾  28 tps · 11s · ↓ 316 tokens";
 
 /** Fill any feed the live session has no entry for, so the preview stays legible. */
 function cannedFeedData(
@@ -266,13 +275,14 @@ class StatusLinePreview {
 				bottomIdx,
 				flat: s => this.#uiTheme.fg("border", s),
 			});
+			const embedOn = effective.embedWorkingStatus;
 			const top = buildStatusLine(
 				barWidth,
-				ctx,
+				embedOn ? { ...ctx, workingStatus: this.#uiTheme.fg("border", CANNED_WORKING) } : ctx,
 				effective,
 				painters.gapColor,
 				{
-					left: effective.leftSegments,
+					left: topLeftSegments(effective, embedOn),
 					right: effective.rightSegments,
 				},
 				{ col: 3, row: 0 },
@@ -312,7 +322,7 @@ export function registerSettingsCommand(
 	onChange: () => void,
 ): void {
 	pi.registerCommand("topping-statusline-settings", {
-		description: "Configure transparent segments, statusline segments, separator, symbols, border style, feeds, and rainbow border animation",
+		description: "Configure transparent segments, statusline segments, separator, symbols, border style, feeds, rainbow border animation, and the embedded working indicator",
 		handler: async (_args, ctx: ExtensionCommandContext) => {
 			if (ctx.mode !== "tui") {
 				ctx.ui.notify("/topping-statusline-settings requires TUI mode", "error");

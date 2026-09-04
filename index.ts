@@ -37,10 +37,12 @@ import {
 import { buildStatusLine } from "./src/layout.js";
 import { RAINBOW_DEG_PER_FRAME, RAINBOW_FRAME_MS, RainbowBorder } from "./src/rainbow.js";
 import { registerSettingsCommand } from "./src/settings-menu.js";
-import { createSettingsState } from "./src/settings.js";
+import { createSettingsState, topLeftSegments } from "./src/settings.js";
 import { theme } from "./src/theme.js";
 import { TokenRateMonitor } from "./src/token-rate.js";
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
+/** Structural view of pi's WorkingStatusIndicator, which the package does not export. */
+type BorderIndicator = { renderInBorder(width: number): string };
 
 export default function (pi: ExtensionAPI) {
 	const state = createSettingsState();
@@ -54,6 +56,24 @@ export default function (pi: ExtensionAPI) {
 	let patchedFooter: Component | undefined;
 	let footerRenderOriginal: ((width: number) => string[]) | undefined;
 	let restoreFooterLayout: (() => void) | undefined;
+	// The CustomEditor this extension constructed itself (undefined when it wraps
+	// another extension's editor), and the host's working indicator captured
+	// from that editor while a response streams.
+	let activeEditor: CustomEditor | undefined;
+	let embeddedWorkingStatus: ((width: number) => string) | undefined;
+
+	// Pi re-reads embedWorkingStatus at every streaming start; the dist stores it
+	// as a plain field, so assigning through the readonly type keeps the editor in
+	// step with the setting. A capture held across a toggle is dropped so a stale
+	// indicator can never render as a frozen status.
+	const syncEmbed = (): void => {
+		if (!activeEditor) return;
+		const editor = activeEditor as CustomEditor & { embedWorkingStatus: boolean };
+		const next = state.effective.embedWorkingStatus;
+		if (editor.embedWorkingStatus === next) return;
+		editor.embedWorkingStatus = next;
+		editor.setWorkingStatusIndicator(undefined);
+	};
 
 	const requestRender = () => activeTui?.requestRender();
 	builder.setRequestRender(requestRender);
@@ -90,6 +110,7 @@ export default function (pi: ExtensionAPI) {
 
 	registerSettingsCommand(pi, state, builder, () => {
 		syncRainbow();
+		syncEmbed();
 		requestRender();
 	});
 
@@ -127,13 +148,15 @@ export default function (pi: ExtensionAPI) {
 		const rainbowOn = rainbowActive();
 		const box = theme.getBox(effective.borderStyle);
 		const painters = makeBoxPainters({ rainbowOn, rainbow, box, width, bottomIdx, flat: border });
+		// The layout truncates the status to fit, so it is rendered at full width here.
+		const working = effective.embedWorkingStatus ? embeddedWorkingStatus?.(innerWidth) || undefined : undefined;
 		const bar = buildStatusLine(
 			innerWidth,
-			segCtx,
+			{ ...segCtx, workingStatus: working },
 			effective,
 			painters.gapColor,
 			{
-				left: effective.leftSegments,
+				left: topLeftSegments(effective, working !== undefined),
 				right: effective.rightSegments,
 			},
 			{ col: 3, row: 0 },
@@ -166,9 +189,28 @@ export default function (pi: ExtensionAPI) {
 	const wrapFactory = (inner: EditorFactory | undefined): EditorFactory => {
 		return (tui, editorTheme, keybindings) => {
 			activeTui = tui;
-			const editor = inner
-				? inner(tui, editorTheme, keybindings)
-				: new CustomEditor(tui, editorTheme, keybindings);
+			let editor: ReturnType<EditorFactory>;
+			if (inner) {
+				// A wrapped third-party editor is not opted in: pi keeps its
+				// standalone working row for it.
+				editor = inner(tui, editorTheme, keybindings);
+				activeEditor = undefined;
+				embeddedWorkingStatus = undefined;
+			} else {
+				const own = new CustomEditor(tui, editorTheme, keybindings, {
+					embedWorkingStatus: state.effective.embedWorkingStatus,
+				});
+				// Capture the host's indicator on its way in; renderBoxed draws it
+				// into the top bar since the inner top border (lines[0]) is discarded.
+				const setIndicator = own.setWorkingStatusIndicator.bind(own);
+				own.setWorkingStatusIndicator = indicator => {
+					const captured = indicator as BorderIndicator | undefined;
+					embeddedWorkingStatus = captured ? width => captured.renderInBorder(width) : undefined;
+					setIndicator(indicator);
+				};
+				activeEditor = own;
+				editor = own;
+			}
 			const innerRender = editor.render.bind(editor);
 			let boxRenderFailed = false;
 			editor.render = width => {
@@ -266,6 +308,7 @@ export default function (pi: ExtensionAPI) {
 		rateMonitor.enable();
 		syncRainbow();
 		ensureInstalled();
+		syncEmbed();
 		ensureFooterPatched();
 		ensureTimer ??= setInterval(() => {
 			ensureInstalled();
@@ -300,6 +343,8 @@ export default function (pi: ExtensionAPI) {
 		restoreFooterLayout = undefined;
 		ourFactory = undefined;
 		wrappedFactory = undefined;
+		activeEditor = undefined;
+		embeddedWorkingStatus = undefined;
 		activeTui = undefined;
 		activeCtx = undefined;
 	});

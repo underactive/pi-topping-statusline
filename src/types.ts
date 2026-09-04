@@ -18,7 +18,8 @@ export type StatusLineSegmentId =
 	| "token_rate"
 	| "feeds"
 	| "context_graph"
-	| "scroll_hint";
+	| "scroll_hint"
+	| "working";
 
 /**
  * A feed the statusline subscribes to: custom session entries published by
@@ -73,6 +74,8 @@ export interface StatusLineSettings {
 	rainbowBorder?: boolean;
 	/** Animate the rainbow border when it is visible. */
 	rainbowAnimation?: boolean;
+	/** Render pi's streaming working status in the top bar instead of its own row. */
+	embedWorkingStatus?: boolean;
 }
 
 /** Resolved per-segment render options; resolveEffectiveSettings always fills them. */
@@ -105,6 +108,7 @@ export interface EffectiveStatusLineSettings {
 	segmentOptions: StatusLineSegmentOptions;
 	rainbowBorder: boolean;
 	rainbowAnimation: boolean;
+	embedWorkingStatus: boolean;
 	includes: SegmentIncludes;
 }
 
@@ -133,6 +137,11 @@ export interface SegmentContext {
 	scrollHint: string | undefined;
 	/** Pi's own footer stats, when this frame needs them. */
 	piStats: string | undefined;
+	/**
+	 * Pi's embedded working indicator, pre-rendered and pre-colored by the host
+	 * for this frame. Absent while no response is streaming.
+	 */
+	workingStatus?: string;
 	/** Live tok/s display state, when this frame needs it. */
 	tokenRate: TokenRateDisplay | undefined;
 	/**

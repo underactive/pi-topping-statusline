@@ -295,6 +295,20 @@ const scrollHintSegment: StatusLineSegment = {
 	},
 };
 
+/**
+ * Pi's embedded working indicator (spinner + message), already colored by the
+ * host, so it is passed through verbatim. The layout truncates it, without an
+ * ellipsis, when it overflows, mirroring pi's own border rendering.
+ */
+const workingSegment: StatusLineSegment = {
+	id: "working",
+	render(ctx) {
+		const status = ctx.workingStatus;
+		if (!status) return INVISIBLE;
+		return { content: status, visible: true };
+	},
+};
+
 /** Context bar + stats — related parts joined by a space, not the group separator. */
 const contextGraphSegment: StatusLineSegment = {
 	id: "context_graph",
@@ -351,6 +365,7 @@ export const SEGMENTS: Record<StatusLineSegmentId, StatusLineSegment> = {
 	feeds: feedsSegment,
 	context_graph: contextGraphSegment,
 	scroll_hint: scrollHintSegment,
+	working: workingSegment,
 };
 
 export function renderSegment(id: StatusLineSegmentId, ctx: SegmentContext): RenderedSegment {
