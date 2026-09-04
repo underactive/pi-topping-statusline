@@ -83,7 +83,7 @@ export default function (pi: ExtensionAPI) {
 	// step with the setting. A capture held across a toggle is dropped so a stale
 	// indicator can never render as a frozen status.
 	const syncEmbed = (): void => {
-		if (!activeEditor) return;
+		if (!activeEditor || typeof activeEditor.setWorkingStatusIndicator !== "function") return;
 		const editor = activeEditor as CustomEditor & { embedWorkingStatus: boolean };
 		const next = state.effective.embedWorkingStatus;
 		if (editor.embedWorkingStatus === next) return;
@@ -260,12 +260,14 @@ export default function (pi: ExtensionAPI) {
 				});
 				// Capture the host's indicator on its way in; renderBoxed draws it
 				// into the top bar since the inner top border (lines[0]) is discarded.
-				const setIndicator = own.setWorkingStatusIndicator.bind(own);
-				own.setWorkingStatusIndicator = indicator => {
-					const captured = indicator as BorderIndicator | undefined;
-					embeddedWorkingStatus = captured ? width => captured.renderInBorder(width) : undefined;
-					setIndicator(indicator);
-				};
+				if (typeof own.setWorkingStatusIndicator === "function") {
+					const setIndicator = own.setWorkingStatusIndicator.bind(own);
+					own.setWorkingStatusIndicator = indicator => {
+						const captured = indicator as BorderIndicator | undefined;
+						embeddedWorkingStatus = captured ? width => captured.renderInBorder(width) : undefined;
+						setIndicator(indicator);
+					};
+				}
 				activeEditor = own;
 				editor = own;
 			}
