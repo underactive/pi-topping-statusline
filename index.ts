@@ -92,7 +92,10 @@ export default function (pi: ExtensionAPI) {
 	const startWorkingFadeTimer = (): void => {
 		if (workingFadeTimer) return;
 		workingFadeTimer = setInterval(() => {
-			if (!workingFade) stopWorkingFadeTimer();
+			if (!workingFade || Date.now() - workingFade.start >= WORKING_FADE_MS) {
+				workingFade = undefined;
+				stopWorkingFadeTimer();
+			}
 			requestRender();
 		}, WORKING_FADE_FRAME_MS);
 		workingFadeTimer.unref?.();
