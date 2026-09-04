@@ -370,7 +370,7 @@ class StatusTheme {
 	fadeFg(from: StatusColor, to: StatusColor, shade: number, text: string): string {
 		const clamped = Math.max(0, Math.min(FADE_SHADE_COUNT - 1, Math.floor(shade)));
 		const progress = (clamped + 1) / FADE_SHADE_COUNT;
-		const eased = 0.5 * (1 - Math.cos(Math.PI * progress));
+		const eased = easeFade(progress);
 		const a = colorValueToRgb(FG_COLORS[from]);
 		const b = colorValueToRgb(FG_COLORS[to]);
 		const r = Math.round(a[0] * (1 - eased) + b[0] * eased);
