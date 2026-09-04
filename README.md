@@ -91,7 +91,9 @@ slow SSH links or in terminals with expensive redraws while retaining the rainbo
 and any loader text a topping such as pi-topping supplies — out of its own row and into the
 top-left group, right after the Pi symbol and its chevron. The remaining left segments (model,
 path, git, PR) step aside while a response streams and return when it ends; the Pi symbol never
-moves. A status too long for the bar is truncated without an ellipsis, as pi's own border does.
+moves. The status appears instantly when a stream starts; when it ends, the swap back
+cross-fades over 750ms (the status sinks into the bar background, then the user's segments
+rise out of it) rather than cutting. A status too long for the bar is truncated without an ellipsis, as pi's own border does.
 Requires pi 0.85 or later. Pi re-reads the opt-in at each streaming start, so a mid-stream toggle
 takes effect on the next response. Only the statusline's own editor opts in: when another
 extension owns the editor slot and is wrapped, pi keeps its standalone working row.

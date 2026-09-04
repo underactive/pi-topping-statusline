@@ -10,8 +10,8 @@ import { visibleWidth } from "@earendil-works/pi-tui";
 import { buildStatusLine } from "../layout.ts";
 import { SEGMENTS } from "../segments.ts";
 import { resolveEffectiveSettings, topLeftSegments } from "../settings.ts";
-import { theme } from "../theme.ts";
-import type { SegmentContext } from "../types.ts";
+import { easeFade, theme } from "../theme.ts";
+import type { SegmentContext, StatusLineSegmentId } from "../types.ts";
 
 const stripAnsi = (text: string) => text.replace(/\x1b\[[0-9;]*m/g, "");
 const noGap = (s: string) => s;
@@ -105,4 +105,37 @@ test("the status drops entirely rather than the pi symbol when there is no room"
 	const plain = stripAnsi(bar);
 	assert.ok(plain.includes(theme.icon.pi));
 	assert.ok(!plain.includes("⠙"));
+});
+
+test("fadeAnsi leaves text untouched at full opacity and sinks colors into the bar at zero", () => {
+	const styled = "\x1b[38;2;254;188;56mA\x1b[39m \x1b[48;5;70mB\x1b[49m";
+	assert.equal(theme.fadeAnsi(styled, 1), styled);
+	const sunk = theme.fadeAnsi(styled, 0);
+	assert.equal(stripAnsi(sunk), stripAnsi(styled));
+	assert.ok(!sunk.includes("254;188;56"), "accent fg blended away");
+	// #121212 is the bar background; every color plane lands on it, 49 is kept.
+	assert.ok(/38;2;18;18;18m|38;5;\d+m/.test(sunk));
+	assert.ok(sunk.includes("\x1b[49m"));
+});
+
+test("easeFade is monotonic and pinned at both ends", () => {
+	assert.equal(easeFade(0), 0);
+	assert.equal(easeFade(1), 1);
+	assert.ok(easeFade(0.25) < easeFade(0.5) && easeFade(0.5) < easeFade(0.75));
+});
+
+test("leftFade recolors the tail but not the pi symbol or the bar width", () => {
+	const status = "\x1b[38;2;10;200;30m⠙ Working\x1b[39m";
+	const groups: { left: StatusLineSegmentId[]; right: StatusLineSegmentId[] } = { left: ["pi", "working"], right: [] };
+	const origin = { col: 0, row: 0 };
+	const build = (fade?: number) =>
+		buildStatusLine(60, ctxWith(status), EFFECTIVE, noGap, groups, origin, { leftFade: fade });
+	const solid = build();
+	const faded = build(0.2);
+	assert.equal(visibleWidth(faded), 60);
+	assert.equal(stripAnsi(faded), stripAnsi(solid));
+	assert.ok(!faded.includes("10;200;30"), "status color blended");
+	const piPrefix = (bar: string) => bar.slice(0, bar.indexOf(theme.icon.pi));
+	assert.equal(piPrefix(faded), piPrefix(solid), "pi symbol styling untouched");
+	assert.equal(build(1), solid);
 });

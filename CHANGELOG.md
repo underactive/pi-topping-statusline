@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   group after the Pi symbol, in place of the other left segments, while a response streams
 - Add a `working` segment that passes pi's pre-rendered indicator through, truncated without an
   ellipsis before any other left segment is dropped
+- Cross-fade the top-left group over 750ms when the embedded working status disappears,
+  instead of cutting back to the model/path/git segments; the status itself appears instantly
 
 ### Changed
 

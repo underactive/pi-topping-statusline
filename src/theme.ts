@@ -249,6 +249,18 @@ export function parseHex(hex: string): [number, number, number] | undefined {
 /** Number of discrete, eased shades used for the token-rate and feed fades (pi-topping). */
 export const FADE_SHADE_COUNT = 5;
 
+/** Stand-in for the terminal's default foreground when a fade must recolor it. */
+const DEFAULT_FG_RGB: [number, number, number] = [204, 204, 204];
+
+/** Every SGR color the layout or a segment can emit: truecolor, 256-color, or the default-fg reset. */
+const SGR_COLOR_RE = /\x1b\[(38|48);2;(\d+);(\d+);(\d+)m|\x1b\[(38|48);5;(\d+)m|\x1b\[39m/g;
+
+/** Raised-cosine ease shared by the discrete and continuous fades. */
+export function easeFade(progress: number): number {
+	const clamped = Math.max(0, Math.min(1, progress));
+	return 0.5 * (1 - Math.cos(Math.PI * clamped));
+}
+
 /** Resolve an xterm-256 palette index to RGB (16–231 cube, 232–255 grayscale). */
 function xterm256ToRgb(n: number): [number, number, number] {
 	if (n >= 232) {
@@ -366,6 +378,35 @@ class StatusTheme {
 		const bl = Math.round(a[2] * (1 - eased) + b[2] * eased);
 		const ansi = rgbToFgAnsi(r, g, bl, this.#mode);
 		return `${ansi}${text}\x1b[39m`;
+	}
+
+	/**
+	 * Blend every color already present in `text` toward the bar background
+	 * by `opacity` (1 = untouched, 0 = fully sunk into the background), so a
+	 * fully styled group can fade as a whole without re-rendering its segments.
+	 * Default-foreground resets are recolored from a neutral stand-in so plain
+	 * labels fade alongside their colored neighbors; background resets (49)
+	 * stay put so transparent bars keep the terminal's own background.
+	 */
+	fadeAnsi(text: string, opacity: number): string {
+		const alpha = Math.max(0, Math.min(1, opacity));
+		if (alpha >= 1) return text;
+		const target = colorValueToRgb(STATUS_LINE_BG);
+		const mode = this.#mode;
+		return text.replace(SGR_COLOR_RE, (_m, tcPlane, r, g, b, ixPlane, index) => {
+			let plane = "38";
+			let rgb: [number, number, number] = DEFAULT_FG_RGB;
+			if (tcPlane) {
+				plane = tcPlane;
+				rgb = [Number(r), Number(g), Number(b)];
+			} else if (ixPlane) {
+				plane = ixPlane;
+				rgb = xterm256ToRgb(Number(index));
+			}
+			const mix = (i: number) => Math.round(rgb[i] * alpha + target[i] * (1 - alpha));
+			const fg = rgbToFgAnsi(mix(0), mix(1), mix(2), mode);
+			return plane === "38" ? fg : fg.replace("\x1b[38;", "\x1b[48;");
+		});
 	}
 }
 

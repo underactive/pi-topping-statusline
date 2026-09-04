@@ -9,6 +9,10 @@
  * thinking-level border color; the callback receives the gap's absolute
  * column and row in the box, so a caller can paint it as part of a
  * continuous border gradient (the rainbow effect).
+ *
+ * `options.leftFade` (0..1) blends every left segment after a leading `pi`
+ * symbol toward the bar background, which the working-indicator transition
+ * uses to cross-fade the group without moving the symbol or its chevron.
  */
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { renderSegment } from "./segments.js";
@@ -59,6 +63,7 @@ export function buildStatusLine(
 	gapBorderColor: (str: string, startCol: number, row: number) => string,
 	segmentGroups: { left: StatusLineSegmentId[]; right: StatusLineSegmentId[] },
 	barOrigin: { col: number; row: number } = { col: 0, row: 0 },
+	options: { leftFade?: number } = {},
 ): string {
 	const separatorDef = getSeparator(settings.separator);
 
@@ -151,13 +156,25 @@ export function buildStatusLine(
 		}
 	}
 
-	const renderGroup = (parts: string[], direction: "left" | "right"): string => {
+	const renderGroup = (parts: string[], direction: "left" | "right", fadeFrom = parts.length): string => {
 		if (parts.length === 0) return "";
 		const sep = direction === "left" ? separatorDef.left : separatorDef.right;
 		const capPrefix = bgAnsi.replace("\x1b[48;", "\x1b[38;");
+		const sepText = ` ${sepAnsi}${sep}${fgAnsi} `;
 
+		let body: string;
+		const fade = options.leftFade;
+		if (fade !== undefined && fade < 1 && fadeFrom < parts.length) {
+			// The faded tail opens with an explicit default-fg reset so plain text
+			// inside it is recolored too, not just segments that set their own color.
+			const head = parts.slice(0, fadeFrom).join(sepText);
+			const tail = `\x1b[39m${parts.slice(fadeFrom).join(sepText)}`;
+			body = head + theme.fadeAnsi((head ? sepText : "") + tail, fade);
+		} else {
+			body = parts.join(sepText);
+		}
 		let content = bgAnsi + fgAnsi;
-		content += ` ${parts.join(` ${sepAnsi}${sep}${fgAnsi} `)} `;
+		content += ` ${body} `;
 		content += "\x1b[0m";
 
 		if (capLeft) content = `${capPrefix}${capLeft}\x1b[0m${content}`;
@@ -165,7 +182,7 @@ export function buildStatusLine(
 		return content;
 	};
 
-	const leftGroup = renderGroup(left, "left");
+	const leftGroup = renderGroup(left, "left", leftSegIds[0] === "pi" ? 1 : 0);
 	const rightGroup = renderGroup(right, "right");
 	if (!leftGroup && !rightGroup) return "";
 

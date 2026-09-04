@@ -38,11 +38,16 @@ import { buildStatusLine } from "./src/layout.js";
 import { RAINBOW_DEG_PER_FRAME, RAINBOW_FRAME_MS, RainbowBorder } from "./src/rainbow.js";
 import { registerSettingsCommand } from "./src/settings-menu.js";
 import { createSettingsState, topLeftSegments } from "./src/settings.js";
+import { easeFade } from "./src/theme.js";
 import { theme } from "./src/theme.js";
 import { TokenRateMonitor } from "./src/token-rate.js";
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
 /** Structural view of pi's WorkingStatusIndicator, which the package does not export. */
 type BorderIndicator = { renderInBorder(width: number): string };
+
+/** Cross-fade budget when the embedded working status disappears: half out, half in. */
+const WORKING_FADE_MS = 750;
+const WORKING_FADE_FRAME_MS = 15;
 
 export default function (pi: ExtensionAPI) {
 	const state = createSettingsState();
@@ -61,6 +66,17 @@ export default function (pi: ExtensionAPI) {
 	// from that editor while a response streams.
 	let activeEditor: CustomEditor | undefined;
 	let embeddedWorkingStatus: ((width: number) => string) | undefined;
+	// Fade from the working status back to the user's left segments when a
+	// stream ends. The last status text is kept so the outgoing half still has
+	// something to fade after pi has cleared its indicator.
+	let workingShown = false;
+	let lastWorkingText: string | undefined;
+	let workingFade: { start: number } | undefined;
+	let workingFadeTimer: ReturnType<typeof setInterval> | undefined;
+	const stopWorkingFadeTimer = (): void => {
+		if (workingFadeTimer) clearInterval(workingFadeTimer);
+		workingFadeTimer = undefined;
+	};
 
 	// Pi re-reads embedWorkingStatus at every streaming start; the dist stores it
 	// as a plain field, so assigning through the readonly type keeps the editor in
@@ -77,6 +93,46 @@ export default function (pi: ExtensionAPI) {
 
 	const requestRender = () => activeTui?.requestRender();
 	builder.setRequestRender(requestRender);
+	const startWorkingFadeTimer = (): void => {
+		if (workingFadeTimer) return;
+		workingFadeTimer = setInterval(() => {
+			if (!workingFade) stopWorkingFadeTimer();
+			requestRender();
+		}, WORKING_FADE_FRAME_MS);
+		workingFadeTimer.unref?.();
+	};
+
+	/**
+	 * Which left group this frame shows and how far it has faded. A stream
+	 * starting shows the working status at once. A stream ending starts a
+	 * 750ms clock: the status sinks into the bar background for the first
+	 * half, then the user's segments rise out of it.
+	 */
+	const resolveWorkingFrame = (live: string | undefined): { working: string | undefined; leftFade?: number } => {
+		const now = Date.now();
+		const liveShown = live !== undefined;
+		if (liveShown) lastWorkingText = live;
+		if (liveShown !== workingShown) {
+			workingShown = liveShown;
+			if (liveShown) {
+				// Instant cut in, and it cancels any fade-out still running.
+				workingFade = undefined;
+			} else {
+				workingFade = { start: now };
+				startWorkingFadeTimer();
+			}
+		}
+		if (!workingFade) return { working: live };
+		const half = WORKING_FADE_MS / 2;
+		const elapsed = now - workingFade.start;
+		if (elapsed >= WORKING_FADE_MS) {
+			workingFade = undefined;
+			return { working: live };
+		}
+		const outgoing = elapsed < half;
+		const leftFade = easeFade(outgoing ? 1 - elapsed / half : (elapsed - half) / half);
+		return { working: outgoing ? lastWorkingText : undefined, leftFade };
+	};
 
 	const rateMonitor = new TokenRateMonitor(requestRender);
 	rateMonitor.attach(pi);
@@ -149,7 +205,8 @@ export default function (pi: ExtensionAPI) {
 		const box = theme.getBox(effective.borderStyle);
 		const painters = makeBoxPainters({ rainbowOn, rainbow, box, width, bottomIdx, flat: border });
 		// The layout truncates the status to fit, so it is rendered at full width here.
-		const working = effective.embedWorkingStatus ? embeddedWorkingStatus?.(innerWidth) || undefined : undefined;
+		const live = effective.embedWorkingStatus ? embeddedWorkingStatus?.(innerWidth) || undefined : undefined;
+		const { working, leftFade } = resolveWorkingFrame(live);
 		const bar = buildStatusLine(
 			innerWidth,
 			{ ...segCtx, workingStatus: working },
@@ -160,6 +217,7 @@ export default function (pi: ExtensionAPI) {
 				right: effective.rightSegments,
 			},
 			{ col: 3, row: 0 },
+			{ leftFade },
 		);
 		// Leading spacer row: keeps the transcript from sitting flush on the box.
 		const out: string[] = ["", renderBoxRow(painters, bar, 0, width, box.topLeft, box.topRight)];
@@ -345,6 +403,10 @@ export default function (pi: ExtensionAPI) {
 		wrappedFactory = undefined;
 		activeEditor = undefined;
 		embeddedWorkingStatus = undefined;
+		stopWorkingFadeTimer();
+		workingFade = undefined;
+		workingShown = false;
+		lastWorkingText = undefined;
 		activeTui = undefined;
 		activeCtx = undefined;
 	});
