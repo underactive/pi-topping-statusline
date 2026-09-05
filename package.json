@@ -1,6 +1,6 @@
 {
 	"name": "@underactive/pi-topping-statusline",
-	"version": "0.1.4",
+	"version": "0.2.0",
 	"description": "oh-my-pi's powerline statusline as a pi extension with some customizations",
 	"keywords": [
 		"pi-package",

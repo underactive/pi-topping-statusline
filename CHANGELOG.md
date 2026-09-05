@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0]
+
 ### Added
 
 - Add a default-off **Embed 'Working' indicator** setting (`embedWorkingStatus`) that opts the
@@ -22,6 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `@earendil-works/pi-ai`, `pi-coding-agent`, and `pi-tui` devDependencies to 0.85.0, and
   add `@earendil-works/pi-server` as a devDependency because 0.85.0's `pi-coding-agent` imports
   it without declaring it
+- Reinstall the editor through pi when the embedding setting changes, so the toggle applies
+  immediately and the active status is preserved instead of mutating the editor in place
+- Reuse the shared fade easing in `fadeFg`
+- Rely on pi's own indicator type instead of a local structural assertion
+
+### Fixed
+
+- Guard the working-indicator hook so the statusline still installs on hosts whose editor lacks
+  `setWorkingStatusIndicator`
+- Stop the working fade repaint timer once the animation ends, even when no render runs
 
 ## [0.1.4]
 
