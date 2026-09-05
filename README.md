@@ -42,6 +42,7 @@ and apply live.
 ║    Border style                                   ‹ rounded ›  ║
 ║    [■] Rainbow border on max thinking                      ON  ║
 ║    [■] Animate rainbow border                              ON  ║
+║    [ ] Embed 'Working' indicator                           OFF ║
 ║                                                                ║
 ╟─ Top Left Segment Group ───────────────────────────────────────╢
 ║    [■] Pi symbol                                           ON  ║
@@ -66,7 +67,7 @@ and apply live.
 ║    + add feed                                                  ║
 ║                                                                ║
 ║  ↑↓ move  ←→ cycle  ␣ toggle  ⏎ apply/edit  esc cancel         ║
-╚════════════════════════════════════════════════════════[ 1/29 ]╝
+╚════════════════════════════════════════════════════════[ 1/30 ]╝
 ```
 
 | Section | Settings |
@@ -94,8 +95,8 @@ path, git, PR) step aside while a response streams and return when it ends; the 
 moves. The status appears instantly when a stream starts; when it ends, the swap back
 cross-fades over 750ms (the status sinks into the bar background, then the user's segments
 rise out of it) rather than cutting. A status too long for the bar is truncated without an ellipsis, as pi's own border does.
-Requires pi 0.85 or later. Pi re-reads the opt-in at each streaming start, so a mid-stream toggle
-takes effect on the next response. Only the statusline's own editor opts in: when another
+Requires pi 0.85 or later. Toggling the setting reinstalls the editor through pi, so it applies
+immediately, even mid-response. Only the statusline's own editor opts in: when another
 extension owns the editor slot and is wrapped, pi keeps its standalone working row.
 
 ## Segments
