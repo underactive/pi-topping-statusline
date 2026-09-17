@@ -143,6 +143,16 @@ function buildSections(settings: StatusLineSettings): MenuSection[] {
 				value: settings.rainbowAnimation ?? true,
 			},
 			{
+				id: "nvidiaGreenBorder",
+				label: "NVIDIA-green when using Switchyard",
+				value: settings.nvidiaGreenBorder ?? true,
+			},
+			{
+				id: "nvidiaGreenAnimation",
+				label: "Animate Switchyard green border",
+				value: settings.nvidiaGreenAnimation ?? true,
+			},
+			{
 				id: "embedWorkingStatus",
 				label: "Embed 'Working' indicator",
 				value: settings.embedWorkingStatus ?? false,
@@ -177,6 +187,8 @@ function valuesToSettings(values: Record<string, MenuValue>): StatusLineSettings
 		feeds: sanitizeFeeds(feedsFromValues(values)),
 		rainbowBorder: values.rainbowBorder === true,
 		rainbowAnimation: values.rainbowAnimation === true,
+		nvidiaGreenBorder: values.nvidiaGreenBorder === true,
+		nvidiaGreenAnimation: values.nvidiaGreenAnimation === true,
 		embedWorkingStatus: values.embedWorkingStatus === true,
 	};
 }
@@ -244,9 +256,9 @@ class StatusLinePreview {
 				feeds: effective.segmentOptions.feeds.map(f => f.customType),
 			};
 			const base = this.#builder.build(barWidth, effective.segmentOptions, include, CANNED_HINT);
-			const greenOn = isSwitchyardProvider(base.model?.provider);
+			const greenOn = effective.nvidiaGreenBorder && isSwitchyardProvider(base.model?.provider);
 			const rainbowOn = !greenOn && effective.rainbowBorder;
-			const animationOn = effective.rainbowAnimation && (greenOn || rainbowOn);
+			const animationOn = greenOn ? effective.nvidiaGreenAnimation : rainbowOn && effective.rainbowAnimation;
 			const phase = animationOn ? (elapsedMs * 360) / RAINBOW_CYCLE_MS : 0;
 			const contextWindow = base.contextWindow || CANNED_WINDOW;
 			const ctx: SegmentContext = {
@@ -326,7 +338,7 @@ export function registerSettingsCommand(
 	onChange: () => void,
 ): void {
 	pi.registerCommand("topping-statusline-settings", {
-		description: "Configure transparent segments, statusline segments, separator, symbols, border style, feeds, rainbow border animation, and the embedded working indicator",
+		description: "Configure transparent segments, statusline segments, separator, symbols, border style, feeds, rainbow border animation, the Switchyard NVIDIA-green border, and the embedded working indicator",
 		handler: async (_args, ctx: ExtensionCommandContext) => {
 			if (ctx.mode !== "tui") {
 				ctx.ui.notify("/topping-statusline-settings requires TUI mode", "error");

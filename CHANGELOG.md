@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add the switchyard provider's NVIDIA-green gradient border (`#84c51a` to `#0b3d20`)
+- Add the `nvidiaGreenBorder` setting to gate the Switchyard green gradient border (on by default)
+- Add the `nvidiaGreenAnimation` setting to animate that border independently of `rainbowAnimation` (on by default)
 
 ## [0.2.0]
 

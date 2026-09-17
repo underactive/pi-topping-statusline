@@ -143,9 +143,14 @@ export default function (pi: ExtensionAPI) {
 	let borderTimer: ReturnType<typeof setInterval> | undefined;
 	const rainbowActive = (): boolean =>
 		state.effective.rainbowBorder && activeCtx !== undefined && pi.getThinkingLevel() === "max";
-	const greenActive = (): boolean => activeCtx !== undefined && isSwitchyardProvider(activeCtx.model?.provider);
+	const greenActive = (): boolean =>
+		state.effective.nvidiaGreenBorder && activeCtx !== undefined && isSwitchyardProvider(activeCtx.model?.provider);
 	const borderColorizer = (): BorderColorizer | undefined => (greenActive() ? green : rainbowActive() ? rainbow : undefined);
-	const borderAnimationActive = (): boolean => state.effective.rainbowAnimation && borderColorizer() !== undefined;
+	const borderAnimationActive = (): boolean => {
+		if (greenActive()) return state.effective.nvidiaGreenAnimation;
+		if (rainbowActive()) return state.effective.rainbowAnimation;
+		return false;
+	};
 	const syncBorderAnimation = (): void => {
 		if (borderAnimationActive()) {
 			if (!borderTimer) {

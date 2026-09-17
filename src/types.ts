@@ -74,6 +74,10 @@ export interface StatusLineSettings {
 	rainbowBorder?: boolean;
 	/** Animate the rainbow border when it is visible. */
 	rainbowAnimation?: boolean;
+	/** NVIDIA-green gradient border while the model provider is Switchyard. */
+	nvidiaGreenBorder?: boolean;
+	/** Animate the Switchyard green border when it is visible. */
+	nvidiaGreenAnimation?: boolean;
 	/** Render pi's streaming working status in the top bar instead of its own row. */
 	embedWorkingStatus?: boolean;
 }
@@ -108,6 +112,8 @@ export interface EffectiveStatusLineSettings {
 	segmentOptions: StatusLineSegmentOptions;
 	rainbowBorder: boolean;
 	rainbowAnimation: boolean;
+	nvidiaGreenBorder: boolean;
+	nvidiaGreenAnimation: boolean;
 	embedWorkingStatus: boolean;
 	includes: SegmentIncludes;
 }

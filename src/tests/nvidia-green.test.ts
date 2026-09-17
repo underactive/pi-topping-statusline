@@ -8,6 +8,7 @@ import {
 	NvidiaGreenBorder,
 	isSwitchyardProvider,
 } from "../nvidia-green.ts";
+import { resolveEffectiveSettings } from "../settings.ts";
 import { detectColorMode, hexToFgAnsi } from "../theme.ts";
 
 test("recognizes the Switchyard provider case-insensitively after trimming", () => {
@@ -16,6 +17,15 @@ test("recognizes the Switchyard provider case-insensitively after trimming", () 
 	assert.equal(isSwitchyardProvider(undefined), false);
 	assert.equal(isSwitchyardProvider(""), false);
 	assert.equal(isSwitchyardProvider("other"), false);
+});
+
+test("switchyard green settings default to true and resolve explicit false", () => {
+	const defaults = resolveEffectiveSettings({});
+	assert.equal(defaults.nvidiaGreenBorder, true);
+	assert.equal(defaults.nvidiaGreenAnimation, true);
+	const off = resolveEffectiveSettings({ nvidiaGreenBorder: false, nvidiaGreenAnimation: false });
+	assert.equal(off.nvidiaGreenBorder, false);
+	assert.equal(off.nvidiaGreenAnimation, false);
 });
 
 test("colorChar wraps a glyph in a color escape and foreground reset", () => {

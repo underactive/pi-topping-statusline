@@ -93,6 +93,8 @@ function loadSettings(): StatusLineSettings {
 		if (raw.feeds !== undefined) settings.feeds = sanitizeFeeds(raw.feeds);
 		if (typeof raw.rainbowBorder === "boolean") settings.rainbowBorder = raw.rainbowBorder;
 		if (typeof raw.rainbowAnimation === "boolean") settings.rainbowAnimation = raw.rainbowAnimation;
+		if (typeof raw.nvidiaGreenBorder === "boolean") settings.nvidiaGreenBorder = raw.nvidiaGreenBorder;
+		if (typeof raw.nvidiaGreenAnimation === "boolean") settings.nvidiaGreenAnimation = raw.nvidiaGreenAnimation;
 		if (typeof raw.embedWorkingStatus === "boolean") settings.embedWorkingStatus = raw.embedWorkingStatus;
 		return settings;
 	} catch {
@@ -156,6 +158,8 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 		bottomRightSegments,
 		rainbowBorder: settings.rainbowBorder ?? true,
 		rainbowAnimation: settings.rainbowAnimation ?? true,
+		nvidiaGreenBorder: settings.nvidiaGreenBorder ?? true,
+		nvidiaGreenAnimation: settings.nvidiaGreenAnimation ?? true,
 		embedWorkingStatus: settings.embedWorkingStatus ?? false,
 		includes,
 		segmentOptions: {

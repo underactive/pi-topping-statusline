@@ -42,6 +42,8 @@ and apply live.
 ║    Border style                                   ‹ rounded ›  ║
 ║    [■] Rainbow border on max thinking                      ON  ║
 ║    [■] Animate rainbow border                              ON  ║
+║    [■] NVIDIA-green when using Switchyard                  ON  ║
+║    [■] Animate Switchyard green border                     ON  ║
 ║    [ ] Embed 'Working' indicator                           OFF ║
 ║                                                                ║
 ╟─ Top Left Segment Group ───────────────────────────────────────╢
@@ -67,18 +69,18 @@ and apply live.
 ║    + add feed                                                  ║
 ║                                                                ║
 ║  ↑↓ move  ←→ cycle  ␣ toggle  ⏎ apply/edit  esc cancel         ║
-╚════════════════════════════════════════════════════════[ 1/30 ]╝
+╚════════════════════════════════════════════════════════[ 1/32 ]╝
 ```
 
 | Section | Settings |
 | --- | --- |
-| Global | Transparent Segments · Separator (`powerline` `powerline-thin` `slash` `pipe` `ascii`) · Symbols (`nerdfont` `unicode` `ascii` — stored in settings.json as `nerd`/`unicode`/`ascii`) · Border style (`rounded` `heavy` `double` `single`) · Rainbow border on max thinking · Animate rainbow border · Embed 'Working' indicator |
+| Global | Transparent Segments · Separator (`powerline` `powerline-thin` `slash` `pipe` `ascii`) · Symbols (`nerdfont` `unicode` `ascii` — stored in settings.json as `nerd`/`unicode`/`ascii`) · Border style (`rounded` `heavy` `double` `single`) · Rainbow border on max thinking · Animate rainbow border · NVIDIA-green when using Switchyard · Animate Switchyard green border · Embed 'Working' indicator |
 | Top Left Segment Group | Pi symbol · Model · Provider · Thinking level · Path · Git · PR |
 | Top Right Segment Group | Token rate · Session name |
 | Bottom Right Segment Group | Feeds · Token rate · Pi stats · Context bar · Context stats |
 | Bottom Left Segment Group | Scroll hint · Feeds · Token rate |
 | Feeds | One subscription per row: type · field · prefix · format, plus add/remove |
-| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on · Animate rainbow border on · Embed 'Working' indicator off |
+| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on · Animate rainbow border on · NVIDIA-green when using Switchyard on · Animate Switchyard green border on · Embed 'Working' indicator off |
 
 With **Rainbow border on max thinking** on (the default), cycling the thinking level to `max`
 replaces the border's fixed theme color with a rainbow: a full hue cycle distributed around the
@@ -88,10 +90,13 @@ the rainbow at a fixed color phase without its repaint timer; the settings previ
 phase too. Any other thinking level keeps the normal theme border color. Disable animation over
 slow SSH links or in terminals with expensive redraws while retaining the rainbow border.
 
-When the active model provider is `switchyard`, the border uses an NVIDIA-green gradient from
-`#84c51a` to `#0b3d20`. It sweeps around the box on the same ~14s cycle as the max-thinking rainbow,
-takes precedence over that rainbow, ignores thinking level, and becomes static when **Animate rainbow
-border** is off.
+When the active model provider is `switchyard` and **NVIDIA-green when using Switchyard** is on (the
+default), the border uses an NVIDIA-green gradient from `#84c51a` to `#0b3d20`. **Animate Switchyard
+green border** is also on by default, so it sweeps around the box on the same ~14s cycle as the
+max-thinking rainbow, independently of **Animate rainbow border**. Turn the animation setting off to
+keep the green gradient at a fixed color phase without its repaint timer. When enabled, green takes
+precedence over the max-thinking rainbow and ignores thinking level; turn the NVIDIA-green setting off
+to restore the normal theme or rainbow border.
 
 **Embed 'Working' indicator** (off by default) moves pi's streaming status — spinner, message,
 and any loader text a topping such as pi-topping supplies — out of its own row and into the
