@@ -35,7 +35,8 @@ import {
 	stripRedundantStats,
 } from "./src/footer.js";
 import { buildStatusLine } from "./src/layout.js";
-import { RAINBOW_DEG_PER_FRAME, RAINBOW_FRAME_MS, RainbowBorder } from "./src/rainbow.js";
+import { NvidiaGreenBorder, isSwitchyardProvider } from "./src/nvidia-green.js";
+import { RAINBOW_DEG_PER_FRAME, RAINBOW_FRAME_MS, RainbowBorder, type BorderColorizer } from "./src/rainbow.js";
 import { registerSettingsCommand } from "./src/settings-menu.js";
 import { createSettingsState, topLeftSegments } from "./src/settings.js";
 import { easeFade } from "./src/theme.js";
@@ -135,34 +136,38 @@ export default function (pi: ExtensionAPI) {
 	rateMonitor.attach(pi);
 	builder.setTokenRateProvider(() => rateMonitor.getDisplay());
 
-	// The rainbow is visible at max thinking independently of whether its hue
-	// phase is animated. Stopping the timer preserves the current live phase.
+	// The active border colorizer is visible independently of whether its phase
+	// is animated. Stopping the timer preserves the current live phase.
 	const rainbow = new RainbowBorder();
-	let rainbowTimer: ReturnType<typeof setInterval> | undefined;
+	const green = new NvidiaGreenBorder();
+	let borderTimer: ReturnType<typeof setInterval> | undefined;
 	const rainbowActive = (): boolean =>
 		state.effective.rainbowBorder && activeCtx !== undefined && pi.getThinkingLevel() === "max";
-	const rainbowAnimationActive = (): boolean => rainbowActive() && state.effective.rainbowAnimation;
-	const syncRainbow = (): void => {
-		if (rainbowAnimationActive()) {
-			if (!rainbowTimer) {
-				rainbowTimer = setInterval(() => {
-					if (!rainbowAnimationActive()) {
-						syncRainbow();
+	const greenActive = (): boolean => activeCtx !== undefined && isSwitchyardProvider(activeCtx.model?.provider);
+	const borderColorizer = (): BorderColorizer | undefined => (greenActive() ? green : rainbowActive() ? rainbow : undefined);
+	const borderAnimationActive = (): boolean => state.effective.rainbowAnimation && borderColorizer() !== undefined;
+	const syncBorderAnimation = (): void => {
+		if (borderAnimationActive()) {
+			if (!borderTimer) {
+				borderTimer = setInterval(() => {
+					const colorizer = borderColorizer();
+					if (!borderAnimationActive() || colorizer === undefined) {
+						syncBorderAnimation();
 						return;
 					}
-					rainbow.step(RAINBOW_DEG_PER_FRAME);
+					colorizer.step(RAINBOW_DEG_PER_FRAME);
 					requestRender();
 				}, RAINBOW_FRAME_MS);
-				rainbowTimer.unref?.();
+				borderTimer.unref?.();
 			}
-		} else if (rainbowTimer) {
-			clearInterval(rainbowTimer);
-			rainbowTimer = undefined;
+		} else if (borderTimer) {
+			clearInterval(borderTimer);
+			borderTimer = undefined;
 		}
 	};
 
 	registerSettingsCommand(pi, state, builder, () => {
-		syncRainbow();
+		syncBorderAnimation();
 		syncEmbed();
 		requestRender();
 	});
@@ -198,9 +203,16 @@ export default function (pi: ExtensionAPI) {
 		const segCtx = builder.build(innerWidth, effective.segmentOptions, include, hint || undefined);
 		// borderColor is assigned by the host after the factory returns — read late.
 		const border = editor.borderColor ?? ((s: string) => s);
-		const rainbowOn = rainbowActive();
+		const colorizer = borderColorizer();
 		const box = theme.getBox(effective.borderStyle);
-		const painters = makeBoxPainters({ rainbowOn, rainbow, box, width, bottomIdx, flat: border });
+		const painters = makeBoxPainters({
+			colorizerOn: colorizer !== undefined,
+			colorizer: colorizer ?? rainbow,
+			box,
+			width,
+			bottomIdx,
+			flat: border,
+		});
 		// The layout truncates the status to fit, so it is rendered at full width here.
 		const live = effective.embedWorkingStatus ? embeddedWorkingStatus?.(innerWidth) || undefined : undefined;
 		const { working, leftFade } = resolveWorkingFrame(live);
@@ -350,9 +362,12 @@ export default function (pi: ExtensionAPI) {
 		}
 	};
 
-	pi.on("model_select", () => requestRender());
+	pi.on("model_select", () => {
+		syncBorderAnimation();
+		requestRender();
+	});
 	pi.on("thinking_level_select", () => {
-		syncRainbow();
+		syncBorderAnimation();
 		requestRender();
 	});
 	pi.on("session_info_changed", () => requestRender());
@@ -362,7 +377,7 @@ export default function (pi: ExtensionAPI) {
 		activeCtx = ctx;
 		builder.attach(ctx);
 		rateMonitor.enable();
-		syncRainbow();
+		syncBorderAnimation();
 		ensureInstalled();
 		syncEmbed();
 		ensureFooterPatched();
@@ -371,7 +386,7 @@ export default function (pi: ExtensionAPI) {
 			ensureFooterPatched();
 			// The host's /settings dialog can change the thinking level without
 			// firing thinking_level_select, so reconcile the animator periodically.
-			syncRainbow();
+			syncBorderAnimation();
 		}, 1000);
 		ensureTimer.unref?.();
 	});
@@ -379,9 +394,9 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_shutdown", () => {
 		rateMonitor.disable();
 		builder.dispose();
-		if (rainbowTimer) {
-			clearInterval(rainbowTimer);
-			rainbowTimer = undefined;
+		if (borderTimer) {
+			clearInterval(borderTimer);
+			borderTimer = undefined;
 		}
 		if (ensureTimer) {
 			clearInterval(ensureTimer);

@@ -1,0 +1,56 @@
+/** Provider-specific NVIDIA green border colorizer for Switchyard. */
+import { rgbToHex, type BorderColorizer } from "./rainbow.js";
+import { detectColorMode, hexToFgAnsi, parseHex, type ColorMode } from "./theme.js";
+
+export const SWITCHYARD_PROVIDER = "switchyard";
+export const NVIDIA_GREEN_HEX = "#84c51a";
+export const NVIDIA_GREEN_DARK_HEX = "#0b3d20";
+export const GREEN_SHADE_COUNT = 256;
+export const GREEN_BIAS = 0.65;
+
+export function isSwitchyardProvider(provider: string | undefined): boolean {
+	return provider?.trim().toLowerCase() === SWITCHYARD_PROVIDER;
+}
+
+export class NvidiaGreenBorder implements BorderColorizer {
+	#phaseDeg: number;
+	readonly #mode: ColorMode;
+	readonly #ansiByShade: string[];
+
+	constructor(phaseDeg = 0) {
+		this.#phaseDeg = ((phaseDeg % 360) + 360) % 360;
+		this.#mode = detectColorMode();
+
+		const dark = parseHex(NVIDIA_GREEN_DARK_HEX);
+		const bright = parseHex(NVIDIA_GREEN_HEX);
+		if (dark === undefined || bright === undefined) {
+			throw new Error("Invalid NVIDIA green palette");
+		}
+
+		this.#ansiByShade = [];
+		for (let i = 0; i < GREEN_SHADE_COUNT; i++) {
+			const progress = i / (GREEN_SHADE_COUNT - 1);
+			const rgb: [number, number, number] = [
+				Math.round(dark[0] + (bright[0] - dark[0]) * progress),
+				Math.round(dark[1] + (bright[1] - dark[1]) * progress),
+				Math.round(dark[2] + (bright[2] - dark[2]) * progress),
+			];
+			this.#ansiByShade.push(hexToFgAnsi(rgbToHex(rgb), this.#mode));
+		}
+	}
+
+	step(deltaDeg: number): void {
+		this.#phaseDeg = ((this.#phaseDeg + deltaDeg) % 360 + 360) % 360;
+	}
+
+	colorChar(char: string, perimeterPos: number, perimeter: number): string {
+		const t = (perimeterPos / perimeter + this.#phaseDeg / 360) % 1;
+		const u = (1 - Math.cos(2 * Math.PI * t)) / 2;
+		const eased = u ** GREEN_BIAS;
+		const shadeIndex = Math.max(
+			0,
+			Math.min(GREEN_SHADE_COUNT - 1, Math.round((1 - eased) * (GREEN_SHADE_COUNT - 1))),
+		);
+		return `${this.#ansiByShade[shadeIndex]}${char}\x1b[39m`;
+	}
+}

@@ -8,6 +8,7 @@ import { makeBoxPainters, renderBoxRow } from "./box.js";
 import type { SegmentContextBuilder } from "./context.js";
 import { buildStatusLine } from "./layout.js";
 import { showMenu, type MenuSection, type MenuValue, type PreviewResult } from "./menu.js";
+import { NvidiaGreenBorder, isSwitchyardProvider } from "./nvidia-green.js";
 import { RAINBOW_CYCLE_MS, RAINBOW_FRAME_MS, RainbowBorder } from "./rainbow.js";
 import {
 	applySettings,
@@ -229,8 +230,6 @@ class StatusLinePreview {
 		// 6-cell chrome budget for the bars themselves.
 		const boxWidth = Math.max(24, innerWidth - 1);
 		const barWidth = boxWidth - 6;
-		const rainbowOn = effective.rainbowBorder;
-		const rainbowAnimationOn = rainbowOn && effective.rainbowAnimation;
 
 		// The theme singleton drives glyph lookups everywhere, so swap the
 		// symbol preset for this synchronous render only; the live bar behind
@@ -245,6 +244,10 @@ class StatusLinePreview {
 				feeds: effective.segmentOptions.feeds.map(f => f.customType),
 			};
 			const base = this.#builder.build(barWidth, effective.segmentOptions, include, CANNED_HINT);
+			const greenOn = isSwitchyardProvider(base.model?.provider);
+			const rainbowOn = !greenOn && effective.rainbowBorder;
+			const animationOn = effective.rainbowAnimation && (greenOn || rainbowOn);
+			const phase = animationOn ? (elapsedMs * 360) / RAINBOW_CYCLE_MS : 0;
 			const contextWindow = base.contextWindow || CANNED_WINDOW;
 			const ctx: SegmentContext = {
 				...base,
@@ -267,9 +270,10 @@ class StatusLinePreview {
 			const box = theme.getBox(effective.borderStyle);
 			// The preview box is three rows tall: top bar, side verticals, bottom bar.
 			const bottomIdx = 2;
+			const colorizer = greenOn ? new NvidiaGreenBorder(phase) : new RainbowBorder(phase);
 			const painters = makeBoxPainters({
-				rainbowOn,
-				rainbow: new RainbowBorder(rainbowAnimationOn ? (elapsedMs * 360) / RAINBOW_CYCLE_MS : 0),
+				colorizerOn: greenOn || rainbowOn,
+				colorizer,
 				box,
 				width: boxWidth,
 				bottomIdx,
@@ -306,8 +310,8 @@ class StatusLinePreview {
 						painters.paint(1, boxWidth - 1, box.vertical),
 					renderBoxRow(painters, bottom, bottomIdx, boxWidth, box.bottomLeft, box.bottomRight),
 				],
-				// A static rainbow stays at phase zero and needs no repaint timer.
-				nextRefreshInMs: rainbowAnimationOn ? RAINBOW_FRAME_MS : undefined,
+				// A static colorizer stays at phase zero and needs no repaint timer.
+				nextRefreshInMs: animationOn ? RAINBOW_FRAME_MS : undefined,
 			};
 		} finally {
 			theme.setSymbolPreset(applied);

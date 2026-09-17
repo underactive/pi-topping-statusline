@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add the switchyard provider's NVIDIA-green gradient border (`#84c51a` to `#0b3d20`)
+
 ## [0.2.0]
 
 ### Added

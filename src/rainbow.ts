@@ -64,11 +64,16 @@ export function rgbToHex([r, g, b]: [number, number, number]): string {
 	return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
+export interface BorderColorizer {
+	colorChar(ch: string, perimeterPos: number, perimeter: number): string;
+	step(deltaDeg: number): void;
+}
+
 /**
  * Colors box glyphs with a hue that travels around the border perimeter as
  * the phase advances — the spectrum appears to flow around the box.
  */
-export class RainbowBorder {
+export class RainbowBorder implements BorderColorizer {
 	#phaseDeg: number;
 	readonly #mode: ColorMode;
 	readonly #ansiByHue: string[] = [];

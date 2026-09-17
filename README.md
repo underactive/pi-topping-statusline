@@ -88,6 +88,11 @@ the rainbow at a fixed color phase without its repaint timer; the settings previ
 phase too. Any other thinking level keeps the normal theme border color. Disable animation over
 slow SSH links or in terminals with expensive redraws while retaining the rainbow border.
 
+When the active model provider is `switchyard`, the border uses an NVIDIA-green gradient from
+`#84c51a` to `#0b3d20`. It sweeps around the box on the same ~14s cycle as the max-thinking rainbow,
+takes precedence over that rainbow, ignores thinking level, and becomes static when **Animate rainbow
+border** is off.
+
 **Embed 'Working' indicator** (off by default) moves pi's streaming status — spinner, message,
 and any loader text a topping such as pi-topping supplies — out of its own row and into the
 top-left group, right after the Pi symbol and its chevron. The remaining left segments (model,

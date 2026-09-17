@@ -24,8 +24,8 @@ const ROUNDED: BoxGlyphs = {
 
 const identityPainters = (boxWidth: number) =>
 	makeBoxPainters({
-		rainbowOn: false,
-		rainbow: new RainbowBorder(0),
+		colorizerOn: false,
+		colorizer: new RainbowBorder(0),
 		box: ROUNDED,
 		width: boxWidth,
 		bottomIdx: 2,
@@ -71,8 +71,8 @@ test("a bar wider than the budget clamps pad to zero", () => {
 
 test("non-rainbow painters wrap whole runs in one flat call", () => {
 	const painters = makeBoxPainters({
-		rainbowOn: false,
-		rainbow: new RainbowBorder(0),
+		colorizerOn: false,
+		colorizer: new RainbowBorder(0),
 		box: ROUNDED,
 		width: 20,
 		bottomIdx: 2,
@@ -85,8 +85,8 @@ test("non-rainbow painters wrap whole runs in one flat call", () => {
 
 test("rainbow coloring never changes the geometry", () => {
 	const painters = makeBoxPainters({
-		rainbowOn: true,
-		rainbow: new RainbowBorder(0),
+		colorizerOn: true,
+		colorizer: new RainbowBorder(0),
 		box: ROUNDED,
 		width: 20,
 		bottomIdx: 2,

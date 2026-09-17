@@ -2,16 +2,16 @@
  * Shared box-chrome painting for the live editor box (index.ts) and the
  * settings-menu preview, so the 3/2/+2 row geometry has one definition.
  *
- * Rainbow mode colors each glyph by its perimeter-walk position; otherwise
+ * Gradient mode colors each glyph by its perimeter-walk position; otherwise
  * the caller's flat painter wraps whole runs in one escape sequence, which
  * renders identically to per-glyph wraps with fewer bytes. The flat painter
- * and the RainbowBorder instance are injected because they differ per caller
+ * and the border colorizer are injected because they differ per caller
  * (host borderColor vs menu theme; shared stepped animator vs phase-from-
  * elapsed instance).
  */
 import { stripVTControlCharacters } from "node:util";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { perimeterLength, perimeterPosition, type RainbowBorder } from "./rainbow.js";
+import { perimeterLength, perimeterPosition, type BorderColorizer } from "./rainbow.js";
 import type { BoxGlyphs } from "./theme.js";
 
 export interface BoxPainters {
@@ -22,25 +22,25 @@ export interface BoxPainters {
 }
 
 export function makeBoxPainters(opts: {
-	rainbowOn: boolean;
-	rainbow: RainbowBorder;
+	colorizerOn: boolean;
+	colorizer: BorderColorizer;
 	box: BoxGlyphs;
 	width: number;
 	bottomIdx: number;
 	flat: (str: string) => string;
 }): BoxPainters {
-	const { rainbowOn, rainbow, box, width, bottomIdx, flat } = opts;
+	const { colorizerOn, colorizer, box, width, bottomIdx, flat } = opts;
 	const perimeter = perimeterLength(width, bottomIdx);
 	const paint = (row: number, col: number, ch: string): string =>
-		rainbowOn ? rainbow.colorChar(ch, perimeterPosition(row, col, width, bottomIdx), perimeter) : flat(ch);
+		colorizerOn ? colorizer.colorChar(ch, perimeterPosition(row, col, width, bottomIdx), perimeter) : flat(ch);
 	const horizRun = (row: number, startCol: number, count: number): string => {
-		if (!rainbowOn) return flat(box.horizontal.repeat(count));
+		if (!colorizerOn) return flat(box.horizontal.repeat(count));
 		let out = "";
 		for (let k = 0; k < count; k++) out += paint(row, startCol + k, box.horizontal);
 		return out;
 	};
 	const gapColor = (str: string, startCol: number, row: number): string => {
-		if (!rainbowOn) return flat(str);
+		if (!colorizerOn) return flat(str);
 		let out = "";
 		let k = 0;
 		for (const ch of str) out += paint(row, startCol + k++, ch);
