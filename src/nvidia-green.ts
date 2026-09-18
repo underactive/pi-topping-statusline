@@ -60,10 +60,7 @@ export class NvidiaGreenBorder implements BorderColorizer {
 		const t = (perimeterPos / perimeter + this.#phaseDeg / 360) % 1;
 		const u = (1 - Math.cos(2 * Math.PI * t)) / 2;
 		const eased = u ** GREEN_BIAS;
-		const shadeIndex = Math.max(
-			0,
-			Math.min(GREEN_SHADE_COUNT - 1, Math.round((1 - eased) * (GREEN_SHADE_COUNT - 1))),
-		);
+		const shadeIndex = Math.round((1 - eased) * (GREEN_SHADE_COUNT - 1));
 		return this.#ansiByShade[shadeIndex];
 	}
 }
