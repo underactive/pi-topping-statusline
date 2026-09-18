@@ -24,6 +24,9 @@ export const RAINBOW_DEG_PER_FRAME = (360 * RAINBOW_FRAME_MS) / RAINBOW_CYCLE_MS
 const SATURATION = 1;
 const LIGHTNESS = 0.62;
 
+/** Normalize a degree value into the [0, 360) range. */
+export const wrapDeg = (deg: number): number => ((deg % 360) + 360) % 360;
+
 /**
  * Number of border cells in the box (rows 0..bottomIdx, cols 0..width-1):
  * two horizontal edges of `width` cells plus two vertical edges of
@@ -81,13 +84,13 @@ export class RainbowBorder implements BorderColorizer {
 	readonly #ansiByHue: string[] = [];
 
 	constructor(phaseDeg = 0) {
-		this.#phaseDeg = ((phaseDeg % 360) + 360) % 360;
+		this.#phaseDeg = wrapDeg(phaseDeg);
 		this.#mode = detectColorMode();
 	}
 
 	/** Advance the whole spectrum by `deltaDeg` (mod 360). */
 	step(deltaDeg: number): void {
-		this.#phaseDeg = ((this.#phaseDeg + deltaDeg) % 360 + 360) % 360;
+		this.#phaseDeg = wrapDeg(this.#phaseDeg + deltaDeg);
 	}
 
 	/** Color one border glyph whose walk position is `perimeterPos` of `perimeter`. */

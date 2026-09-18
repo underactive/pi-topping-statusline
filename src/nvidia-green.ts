@@ -1,5 +1,5 @@
 /** Provider-specific NVIDIA green border colorizer for Switchyard. */
-import { rgbToHex, type BorderColorizer } from "./rainbow.js";
+import { rgbToHex, wrapDeg, type BorderColorizer } from "./rainbow.js";
 import { detectColorMode, hexToFgAnsi, parseHex, type ColorMode } from "./theme.js";
 
 export const SWITCHYARD_PROVIDER = "switchyard";
@@ -44,12 +44,12 @@ export class NvidiaGreenBorder implements BorderColorizer {
 	readonly #ansiByShade: string[];
 
 	constructor(phaseDeg = 0) {
-		this.#phaseDeg = ((phaseDeg % 360) + 360) % 360;
+		this.#phaseDeg = wrapDeg(phaseDeg);
 		this.#ansiByShade = buildAnsiByShade(detectColorMode());
 	}
 
 	step(deltaDeg: number): void {
-		this.#phaseDeg = ((this.#phaseDeg + deltaDeg) % 360 + 360) % 360;
+		this.#phaseDeg = wrapDeg(this.#phaseDeg + deltaDeg);
 	}
 
 	colorChar(char: string, perimeterPos: number, perimeter: number): string {
