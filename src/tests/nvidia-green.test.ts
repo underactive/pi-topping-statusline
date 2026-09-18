@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-	GREEN_BIAS,
-	GREEN_SHADE_COUNT,
 	NVIDIA_GREEN_DARK_HEX,
 	NVIDIA_GREEN_HEX,
 	NvidiaGreenBorder,
@@ -50,6 +48,4 @@ test("step by one full turn preserves the color", () => {
 test("opposite positions receive different shades", () => {
 	const border = new NvidiaGreenBorder();
 	assert.notEqual(border.colorChar("─", 0, 28), border.colorChar("─", 14, 28));
-	assert.equal(GREEN_SHADE_COUNT, 256);
-	assert.equal(GREEN_BIAS, 0.65);
 });

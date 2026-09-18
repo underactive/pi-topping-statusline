@@ -5,8 +5,8 @@ import { detectColorMode, hexToFgAnsi, parseHex, type ColorMode } from "./theme.
 export const SWITCHYARD_PROVIDER = "switchyard";
 export const NVIDIA_GREEN_HEX = "#84c51a";
 export const NVIDIA_GREEN_DARK_HEX = "#0b3d20";
-export const GREEN_SHADE_COUNT = 256;
-export const GREEN_BIAS = 0.65;
+const GREEN_SHADE_COUNT = 256;
+const GREEN_BIAS = 0.65;
 
 export function isSwitchyardProvider(provider: string | undefined): boolean {
 	return provider?.trim().toLowerCase() === SWITCHYARD_PROVIDER;
