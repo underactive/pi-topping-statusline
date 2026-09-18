@@ -12,31 +12,40 @@ export function isSwitchyardProvider(provider: string | undefined): boolean {
 	return provider?.trim().toLowerCase() === SWITCHYARD_PROVIDER;
 }
 
+const ansiByShadeByMode = new Map<ColorMode, string[]>();
+
+function buildAnsiByShade(mode: ColorMode): string[] {
+	const cached = ansiByShadeByMode.get(mode);
+	if (cached !== undefined) return cached;
+
+	const dark = parseHex(NVIDIA_GREEN_DARK_HEX);
+	const bright = parseHex(NVIDIA_GREEN_HEX);
+	if (dark === undefined || bright === undefined) {
+		throw new Error("Invalid NVIDIA green palette");
+	}
+
+	const ansiByShade: string[] = [];
+	for (let i = 0; i < GREEN_SHADE_COUNT; i++) {
+		const progress = i / (GREEN_SHADE_COUNT - 1);
+		const rgb: [number, number, number] = [
+			Math.round(dark[0] + (bright[0] - dark[0]) * progress),
+			Math.round(dark[1] + (bright[1] - dark[1]) * progress),
+			Math.round(dark[2] + (bright[2] - dark[2]) * progress),
+		];
+		ansiByShade.push(hexToFgAnsi(rgbToHex(rgb), mode));
+	}
+
+	ansiByShadeByMode.set(mode, ansiByShade);
+	return ansiByShade;
+}
+
 export class NvidiaGreenBorder implements BorderColorizer {
 	#phaseDeg: number;
-	readonly #mode: ColorMode;
 	readonly #ansiByShade: string[];
 
 	constructor(phaseDeg = 0) {
 		this.#phaseDeg = ((phaseDeg % 360) + 360) % 360;
-		this.#mode = detectColorMode();
-
-		const dark = parseHex(NVIDIA_GREEN_DARK_HEX);
-		const bright = parseHex(NVIDIA_GREEN_HEX);
-		if (dark === undefined || bright === undefined) {
-			throw new Error("Invalid NVIDIA green palette");
-		}
-
-		this.#ansiByShade = [];
-		for (let i = 0; i < GREEN_SHADE_COUNT; i++) {
-			const progress = i / (GREEN_SHADE_COUNT - 1);
-			const rgb: [number, number, number] = [
-				Math.round(dark[0] + (bright[0] - dark[0]) * progress),
-				Math.round(dark[1] + (bright[1] - dark[1]) * progress),
-				Math.round(dark[2] + (bright[2] - dark[2]) * progress),
-			];
-			this.#ansiByShade.push(hexToFgAnsi(rgbToHex(rgb), this.#mode));
-		}
+		this.#ansiByShade = buildAnsiByShade(detectColorMode());
 	}
 
 	step(deltaDeg: number): void {
