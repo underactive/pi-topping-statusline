@@ -75,6 +75,24 @@ function classifyProjectDir(pwd: string): { scratch: boolean; relative: string |
 	return { scratch: false, relative: null };
 }
 
+interface PathClassification {
+	scratch: boolean;
+	relative: string | null;
+	strippedDisplay: string;
+}
+
+let cachedCwd: string | undefined;
+let cachedClassification: PathClassification | undefined;
+
+/** cwd is effectively constant for a session, so cache the root scans instead of redoing them on every render (including repeated shrink passes). */
+function classifyCwd(cwd: string): PathClassification {
+	if (cachedCwd === cwd && cachedClassification) return cachedClassification;
+	const { scratch, relative } = classifyProjectDir(cwd);
+	cachedClassification = { scratch, relative, strippedDisplay: stripDisplayRoot(cwd) };
+	cachedCwd = cwd;
+	return cachedClassification;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Segment implementations
 // ═══════════════════════════════════════════════════════════════════════════
@@ -133,14 +151,14 @@ const pathSegment: StatusLineSegment = {
 			return { content: theme.fg("statusLinePath", content), visible: true };
 		}
 
-		const { scratch, relative } = classifyProjectDir(ctx.cwd);
+		const { scratch, relative, strippedDisplay } = classifyCwd(ctx.cwd);
 		let pwd = ctx.cwd;
 
 		if (opts.stripWorkPrefix) {
 			if (scratch) {
 				if (relative) pwd = relative;
 			} else {
-				pwd = stripDisplayRoot(pwd);
+				pwd = strippedDisplay;
 			}
 		}
 		if (opts.abbreviate) {
