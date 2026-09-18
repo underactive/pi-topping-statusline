@@ -46,7 +46,7 @@ type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorCom
 
 /** Cross-fade budget when the embedded working status disappears: half out, half in. */
 const WORKING_FADE_MS = 750;
-const WORKING_FADE_FRAME_MS = 15;
+const WORKING_FADE_FRAME_MS = 30;
 
 export default function (pi: ExtensionAPI) {
 	const state = createSettingsState();
