@@ -66,6 +66,8 @@ export function rgbToHex([r, g, b]: [number, number, number]): string {
 
 export interface BorderColorizer {
 	colorChar(ch: string, perimeterPos: number, perimeter: number): string;
+	/** ANSI foreground-color escape for a perimeter position, with no glyph or reset. */
+	prefix(perimeterPos: number, perimeter: number): string;
 	step(deltaDeg: number): void;
 }
 
@@ -90,6 +92,10 @@ export class RainbowBorder implements BorderColorizer {
 
 	/** Color one border glyph whose walk position is `perimeterPos` of `perimeter`. */
 	colorChar(char: string, perimeterPos: number, perimeter: number): string {
+		return `${this.prefix(perimeterPos, perimeter)}${char}\x1b[39m`;
+	}
+
+	prefix(perimeterPos: number, perimeter: number): string {
 		const hue = (this.#phaseDeg + (360 * perimeterPos) / perimeter) % 360;
 		const bucket = Math.round(hue) % 360;
 		let ansi = this.#ansiByHue[bucket];
@@ -98,6 +104,6 @@ export class RainbowBorder implements BorderColorizer {
 			ansi = hexToFgAnsi(hex, this.#mode);
 			this.#ansiByHue[bucket] = ansi;
 		}
-		return `${ansi}${char}\x1b[39m`;
+		return ansi;
 	}
 }

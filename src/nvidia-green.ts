@@ -53,6 +53,10 @@ export class NvidiaGreenBorder implements BorderColorizer {
 	}
 
 	colorChar(char: string, perimeterPos: number, perimeter: number): string {
+		return `${this.prefix(perimeterPos, perimeter)}${char}\x1b[39m`;
+	}
+
+	prefix(perimeterPos: number, perimeter: number): string {
 		const t = (perimeterPos / perimeter + this.#phaseDeg / 360) % 1;
 		const u = (1 - Math.cos(2 * Math.PI * t)) / 2;
 		const eased = u ** GREEN_BIAS;
@@ -60,6 +64,6 @@ export class NvidiaGreenBorder implements BorderColorizer {
 			0,
 			Math.min(GREEN_SHADE_COUNT - 1, Math.round((1 - eased) * (GREEN_SHADE_COUNT - 1))),
 		);
-		return `${this.#ansiByShade[shadeIndex]}${char}\x1b[39m`;
+		return this.#ansiByShade[shadeIndex];
 	}
 }

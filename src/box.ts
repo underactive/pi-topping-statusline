@@ -36,14 +36,36 @@ export function makeBoxPainters(opts: {
 	const horizRun = (row: number, startCol: number, count: number): string => {
 		if (!colorizerOn) return flat(box.horizontal.repeat(count));
 		let out = "";
-		for (let k = 0; k < count; k++) out += paint(row, startCol + k, box.horizontal);
+		let runPrefix: string | undefined;
+		let runChars = "";
+		for (let k = 0; k < count; k++) {
+			const prefix = colorizer.prefix(perimeterPosition(row, startCol + k, width, bottomIdx), perimeter);
+			if (runPrefix !== undefined && prefix !== runPrefix) {
+				out += `${runPrefix}${runChars}\x1b[39m`;
+				runChars = "";
+			}
+			runPrefix = prefix;
+			runChars += box.horizontal;
+		}
+		if (runPrefix !== undefined) out += `${runPrefix}${runChars}\x1b[39m`;
 		return out;
 	};
 	const gapColor = (str: string, startCol: number, row: number): string => {
 		if (!colorizerOn) return flat(str);
 		let out = "";
+		let runPrefix: string | undefined;
+		let runChars = "";
 		let k = 0;
-		for (const ch of str) out += paint(row, startCol + k++, ch);
+		for (const ch of str) {
+			const prefix = colorizer.prefix(perimeterPosition(row, startCol + k++, width, bottomIdx), perimeter);
+			if (runPrefix !== undefined && prefix !== runPrefix) {
+				out += `${runPrefix}${runChars}\x1b[39m`;
+				runChars = "";
+			}
+			runPrefix = prefix;
+			runChars += ch;
+		}
+		if (runPrefix !== undefined) out += `${runPrefix}${runChars}\x1b[39m`;
 		return out;
 	};
 	return { paint, horizRun, gapColor };
