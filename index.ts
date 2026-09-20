@@ -254,6 +254,7 @@ export default function (pi: ExtensionAPI) {
 			const innerRender = editor.render.bind(editor);
 			let boxRenderFailed = false;
 			editor.render = width => {
+				if (boxRenderFailed) return innerRender(width);
 				try {
 					return renderBoxed(innerRender, width, editor);
 				} catch (err) {
