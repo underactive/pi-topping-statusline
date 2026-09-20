@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1]
+
 ### Added
 
 - Add the switchyard provider's NVIDIA-green gradient border (`#84c51a` to `#0b3d20`)
@@ -21,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preview pi 0.86's longest compaction message while the embed setting row is focused
 - Bump `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`, and `@earendil-works/pi-tui` devDependencies to 0.86.0
 - Document that `pi_stats` includes pi 0.86's cache-warming refreshes and can change while idle
+- Reduce working-fade repaint frequency to lower render overhead
+- Cache NVIDIA-green shade tables and coalesce repeated gradient escapes to reduce border-rendering work
+- Memoize path classification per working directory to avoid repeated render calculations
+
+### Fixed
+
+- Fall back to the inner editor after a boxed render failure instead of retrying the failed boxed path on every frame
 
 ### Removed
 
