@@ -35,8 +35,10 @@ import type {
 } from "./types.js";
 
 const SYMBOL_LABELS: Record<SymbolPreset, string> = { nerd: "nerdfont", unicode: "unicode", ascii: "ascii" };
-const SYMBOL_FROM_LABEL: Record<string, SymbolPreset> = { nerdfont: "nerd", unicode: "unicode", ascii: "ascii" };
-const SYMBOL_VALUES: readonly string[] = ["nerdfont", "unicode", "ascii"];
+const SYMBOL_VALUES: readonly string[] = Object.values(SYMBOL_LABELS);
+const SYMBOL_FROM_LABEL: Record<string, SymbolPreset> = Object.fromEntries(
+	(Object.entries(SYMBOL_LABELS) as [SymbolPreset, string][]).map(([preset, label]) => [label, preset]),
+);
 
 const SECTION_TITLES = [
 	"Top Left Segment Group",
