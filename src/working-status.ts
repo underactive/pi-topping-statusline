@@ -8,6 +8,11 @@ export const STATUS_HOLD_MS = 150;
 /** Cross-fade budget when the embedded working status disappears: half out, half in. */
 export const WORKING_FADE_MS = 750;
 
+/** True when a status kind is a message-style indicator rather than the working spinner. */
+export function isMessageKind(kind: StatusIndicatorKind | undefined): boolean {
+	return kind !== undefined && kind !== "working";
+}
+
 /** Which status the top-left group shows this frame and how far it has faded. */
 export interface StatusFrame {
 	status: string | undefined;
@@ -50,7 +55,7 @@ export class StatusTransition {
 			this.#liveShown = false;
 			this.#exit = {
 				holdUntil: now + STATUS_HOLD_MS,
-				fadeMs: this.#lastKind === "working" || this.#lastKind === undefined ? WORKING_FADE_MS : 0,
+				fadeMs: isMessageKind(this.#lastKind) ? 0 : WORKING_FADE_MS,
 			};
 		}
 

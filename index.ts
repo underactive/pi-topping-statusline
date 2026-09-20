@@ -41,7 +41,7 @@ import { registerSettingsCommand } from "./src/settings-menu.js";
 import { createSettingsState, topLeftSegments } from "./src/settings.js";
 import { theme } from "./src/theme.js";
 import { TokenRateMonitor } from "./src/token-rate.js";
-import { type StatusIndicatorKind, StatusTransition } from "./src/working-status.js";
+import { isMessageKind, type StatusIndicatorKind, StatusTransition } from "./src/working-status.js";
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
 
 const WORKING_FADE_FRAME_MS = 30;
@@ -193,7 +193,7 @@ export default function (pi: ExtensionAPI) {
 			{ col: 3, row: 0 },
 			{
 				leftFade: frame.leftFade,
-				workingEllipsis: frame.kind && frame.kind !== "working" ? "…" : "",
+				workingEllipsis: isMessageKind(frame.kind) ? "…" : "",
 			},
 		);
 		// Leading spacer row: keeps the transcript from sitting flush on the box.
