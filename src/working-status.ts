@@ -64,11 +64,6 @@ export class StatusTransition {
 		if (now < exit.holdUntil) {
 			return { status: this.#lastStatus, kind: this.#lastKind, pending: true };
 		}
-		if (exit.fadeMs === 0) {
-			this.#clearExit();
-			return { status: undefined, kind: undefined, pending: false };
-		}
-
 		const elapsed = now - exit.holdUntil;
 		if (elapsed >= exit.fadeMs) {
 			this.#clearExit();
