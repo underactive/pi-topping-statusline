@@ -39,13 +39,11 @@ import { NvidiaGreenBorder, isSwitchyardProvider } from "./src/nvidia-green.js";
 import { RAINBOW_DEG_PER_FRAME, RAINBOW_FRAME_MS, RainbowBorder, type BorderColorizer } from "./src/rainbow.js";
 import { registerSettingsCommand } from "./src/settings-menu.js";
 import { createSettingsState, topLeftSegments } from "./src/settings.js";
-import { easeFade } from "./src/theme.js";
 import { theme } from "./src/theme.js";
 import { TokenRateMonitor } from "./src/token-rate.js";
+import { StatusTransition } from "./src/working-status.js";
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
 
-/** Cross-fade budget when the embedded working status disappears: half out, half in. */
-const WORKING_FADE_MS = 750;
 const WORKING_FADE_FRAME_MS = 30;
 
 export default function (pi: ExtensionAPI) {
@@ -61,16 +59,12 @@ export default function (pi: ExtensionAPI) {
 	let footerRenderOriginal: ((width: number) => string[]) | undefined;
 	let restoreFooterLayout: (() => void) | undefined;
 	// The CustomEditor this extension constructed itself (undefined when it wraps
-	// another extension's editor), and the host's working indicator captured
-	// from that editor while a response streams.
+	// another extension's editor), and the host's status spinner captured from
+	// that editor. pi 0.85 sends only working; 0.86 sends all four kinds.
 	let activeEditor: CustomEditor | undefined;
 	let embeddedWorkingStatus: ((width: number) => string) | undefined;
-	// Fade from the working status back to the user's left segments when a
-	// stream ends. The last status text is kept so the outgoing half still has
-	// something to fade after pi has cleared its indicator.
-	let workingShown = false;
-	let lastWorkingText: string | undefined;
-	let workingFade: { start: number } | undefined;
+	let embeddedStatusKind: string | undefined;
+	const statusTransition = new StatusTransition();
 	let workingFadeTimer: ReturnType<typeof setInterval> | undefined;
 	const stopWorkingFadeTimer = (): void => {
 		if (workingFadeTimer) clearInterval(workingFadeTimer);
@@ -91,45 +85,10 @@ export default function (pi: ExtensionAPI) {
 	const startWorkingFadeTimer = (): void => {
 		if (workingFadeTimer) return;
 		workingFadeTimer = setInterval(() => {
-			if (!workingFade || Date.now() - workingFade.start >= WORKING_FADE_MS) {
-				workingFade = undefined;
-				stopWorkingFadeTimer();
-			}
 			requestRender();
+			if (!statusTransition.pending(Date.now())) stopWorkingFadeTimer();
 		}, WORKING_FADE_FRAME_MS);
 		workingFadeTimer.unref?.();
-	};
-
-	/**
-	 * Which left group this frame shows and how far it has faded. A stream
-	 * starting shows the working status at once. A stream ending starts a
-	 * 750ms clock: the status sinks into the bar background for the first
-	 * half, then the user's segments rise out of it.
-	 */
-	const resolveWorkingFrame = (live: string | undefined): { working: string | undefined; leftFade?: number } => {
-		const now = Date.now();
-		const liveShown = live !== undefined;
-		if (liveShown) lastWorkingText = live;
-		if (liveShown !== workingShown) {
-			workingShown = liveShown;
-			if (liveShown) {
-				// Instant cut in, and it cancels any fade-out still running.
-				workingFade = undefined;
-			} else {
-				workingFade = { start: now };
-				startWorkingFadeTimer();
-			}
-		}
-		if (!workingFade) return { working: live };
-		const half = WORKING_FADE_MS / 2;
-		const elapsed = now - workingFade.start;
-		if (elapsed >= WORKING_FADE_MS) {
-			workingFade = undefined;
-			return { working: live };
-		}
-		const outgoing = elapsed < half;
-		const leftFade = easeFade(outgoing ? 1 - elapsed / half : (elapsed - half) / half);
-		return { working: outgoing ? lastWorkingText : undefined, leftFade };
 	};
 
 	const rateMonitor = new TokenRateMonitor(requestRender);
@@ -220,18 +179,22 @@ export default function (pi: ExtensionAPI) {
 		});
 		// The layout truncates the status to fit, so it is rendered at full width here.
 		const live = effective.embedWorkingStatus ? embeddedWorkingStatus?.(innerWidth) || undefined : undefined;
-		const { working, leftFade } = resolveWorkingFrame(live);
+		const frame = statusTransition.resolve(live, embeddedStatusKind, Date.now());
+		if (frame.pending) startWorkingFadeTimer();
 		const bar = buildStatusLine(
 			innerWidth,
-			{ ...segCtx, workingStatus: working },
+			{ ...segCtx, workingStatus: frame.status },
 			effective,
 			painters.gapColor,
 			{
-				left: topLeftSegments(effective, working !== undefined),
+				left: topLeftSegments(effective, frame.status !== undefined),
 				right: effective.rightSegments,
 			},
 			{ col: 3, row: 0 },
-			{ leftFade },
+			{
+				leftFade: frame.leftFade,
+				workingEllipsis: frame.kind && frame.kind !== "working" ? "…" : "",
+			},
 		);
 		// Leading spacer row: keeps the transcript from sitting flush on the box.
 		const out: string[] = ["", renderBoxRow(painters, bar, 0, width, box.topLeft, box.topRight)];
@@ -264,20 +227,24 @@ export default function (pi: ExtensionAPI) {
 			let editor: ReturnType<EditorFactory>;
 			if (inner) {
 				// A wrapped third-party editor is not opted in: pi keeps its
-				// standalone working row for it.
+				// standalone status-spinner row for it.
 				editor = inner(tui, editorTheme, keybindings);
 				activeEditor = undefined;
 				embeddedWorkingStatus = undefined;
+				embeddedStatusKind = undefined;
 			} else {
 				const own = new CustomEditor(tui, editorTheme, keybindings, {
 					embedWorkingStatus: state.effective.embedWorkingStatus,
 				});
-				// Capture the host's indicator on its way in; renderBoxed draws it
-				// into the top bar since the inner top border (lines[0]) is discarded.
+				// Capture the host's status indicator on its way in; renderBoxed
+				// draws it in the top bar because the inner border is discarded.
 				if (typeof own.setWorkingStatusIndicator === "function") {
 					const setIndicator = own.setWorkingStatusIndicator.bind(own);
 					own.setWorkingStatusIndicator = indicator => {
+						// pi 0.86 sends retry, compaction, and branch-summary indicators
+						// through this setter too; renderInBorder now lives on the base class.
 						embeddedWorkingStatus = indicator ? width => indicator.renderInBorder(width) : undefined;
+						embeddedStatusKind = indicator?.kind;
 						setIndicator(indicator);
 					};
 				}
@@ -316,6 +283,8 @@ export default function (pi: ExtensionAPI) {
 
 	const PI_STATS_CACHE_MS = 250;
 	let piStatsCache: { at: number; value: string | undefined } | undefined;
+	// From pi 0.86 these host totals include cache_warm usage entries, so R/W
+	// and cost can change while idle; mirroring the footer keeps this exact.
 	builder.setPiStatsProvider(width => {
 		if (!footerRenderOriginal) return undefined;
 		const now = Date.now();
@@ -363,6 +332,7 @@ export default function (pi: ExtensionAPI) {
 		}
 		if (!restoreFooterLayout) {
 			const layoutRoot = (tui as unknown as { layoutRoot?: unknown }).layoutRoot;
+			// No-op on pi >= 0.86; retained for supported 0.84/0.85 hosts.
 			restoreFooterLayout = collapseFooterLayoutSlot(layoutRoot, patchedFooter);
 		}
 	};
@@ -421,10 +391,9 @@ export default function (pi: ExtensionAPI) {
 		wrappedFactory = undefined;
 		activeEditor = undefined;
 		embeddedWorkingStatus = undefined;
+		embeddedStatusKind = undefined;
 		stopWorkingFadeTimer();
-		workingFade = undefined;
-		workingShown = false;
-		lastWorkingText = undefined;
+		statusTransition.reset();
 		activeTui = undefined;
 		activeCtx = undefined;
 	});

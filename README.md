@@ -44,7 +44,7 @@ and apply live.
 ║    [■] Animate rainbow border                              ON  ║
 ║    [■] NVIDIA-green when using Switchyard                  ON  ║
 ║    [■] Animate Switchyard green border                     ON  ║
-║    [ ] Embed 'Working' indicator                           OFF ║
+║    [ ] Embed status spinners                               OFF ║
 ║                                                                ║
 ╟─ Top Left Segment Group ───────────────────────────────────────╢
 ║    [■] Pi symbol                                           ON  ║
@@ -74,13 +74,13 @@ and apply live.
 
 | Section | Settings |
 | --- | --- |
-| Global | Transparent Segments · Separator (`powerline` `powerline-thin` `slash` `pipe` `ascii`) · Symbols (`nerdfont` `unicode` `ascii` — stored in settings.json as `nerd`/`unicode`/`ascii`) · Border style (`rounded` `heavy` `double` `single`) · Rainbow border on max thinking · Animate rainbow border · NVIDIA-green when using Switchyard · Animate Switchyard green border · Embed 'Working' indicator |
+| Global | Transparent Segments · Separator (`powerline` `powerline-thin` `slash` `pipe` `ascii`) · Symbols (`nerdfont` `unicode` `ascii` — stored in settings.json as `nerd`/`unicode`/`ascii`) · Border style (`rounded` `heavy` `double` `single`) · Rainbow border on max thinking · Animate rainbow border · NVIDIA-green when using Switchyard · Animate Switchyard green border · Embed status spinners |
 | Top Left Segment Group | Pi symbol · Model · Provider · Thinking level · Path · Git · PR |
 | Top Right Segment Group | Token rate · Session name |
 | Bottom Right Segment Group | Feeds · Token rate · Pi stats · Context bar · Context stats |
 | Bottom Left Segment Group | Scroll hint · Feeds · Token rate |
 | Feeds | One subscription per row: type · field · prefix · format, plus add/remove |
-| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on · Animate rainbow border on · NVIDIA-green when using Switchyard on · Animate Switchyard green border on · Embed 'Working' indicator off |
+| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on · Animate rainbow border on · NVIDIA-green when using Switchyard on · Animate Switchyard green border on · Embed status spinners off |
 
 With **Rainbow border on max thinking** on (the default), cycling the thinking level to `max`
 replaces the border's fixed theme color with a rainbow: a full hue cycle distributed around the
@@ -98,16 +98,20 @@ keep the green gradient at a fixed color phase without its repaint timer. When e
 precedence over the max-thinking rainbow and ignores thinking level; turn the NVIDIA-green setting off
 to restore the normal theme or rainbow border.
 
-**Embed 'Working' indicator** (off by default) moves pi's streaming status — spinner, message,
-and any loader text a topping such as pi-topping supplies — out of its own row and into the
-top-left group, right after the Pi symbol and its chevron. The remaining left segments (model,
-path, git, PR) step aside while a response streams and return when it ends; the Pi symbol never
-moves. The status appears instantly when a stream starts; when it ends, the swap back
-cross-fades over 750ms (the status sinks into the bar background, then the user's segments
-rise out of it) rather than cutting. A status too long for the bar is truncated without an ellipsis, as pi's own border does.
-Requires pi 0.85 or later. Toggling the setting reinstalls the editor through pi, so it applies
-immediately, even mid-response. Only the statusline's own editor opts in: when another
-extension owns the editor slot and is wrapped, pi keeps its standalone working row.
+**Embed status spinners** (off by default) moves pi's status indicators out of their own row
+and into the top-left group, right after the Pi symbol and its chevron. On pi 0.86 and later
+this covers the working, retry, compaction, and branch-summary spinners; pi 0.85 embeds only
+the working indicator. The remaining left segments (model, path, git, PR) step aside while a
+status is visible, and the Pi symbol never moves. A cleared status is held briefly so handoffs
+between spinners do not flash the left segments. Only the end of a working spinner then
+cross-fades back over 750ms; the message-style spinners cut after the hold.
+
+A status too long for the bar is truncated. The working spinner keeps pi's bare cut, while the
+message-style spinners use an ellipsis. Focusing the embed row in the settings preview shows
+the longest compaction sample. Requires pi 0.85 or later. Toggling the setting reinstalls the
+editor through pi, so it applies immediately, even mid-response. Only the statusline's own
+editor opts in: when another extension owns the editor slot and is wrapped, pi keeps its
+standalone status row.
 
 ## Segments
 
@@ -118,7 +122,9 @@ fs-watch), `pr` (via `gh`, hidden if missing), `session_name`, `token_rate` (liv
 accent while active, held 1.5s, faded 0.5s, then a dim `--- tok/s` placeholder; estimate
 pipelined from pi-topping's word-count EMA; available in the top-right, bottom-left, and
 bottom-right groups), `pi_stats`, `context_graph` (bar + stats), `scroll_hint`, plus `feeds`
-(documented below).
+(documented below). On pi 0.86 and later, `pi_stats` includes cache-warming refreshes folded
+into pi's own footer totals, so cache R/W and cost can increase while idle; this segment matches
+the host footer by construction.
 
 When the terminal narrows: right segments drop first, then the path shrinks (to ~8 cells),
 then left segments drop end-first — the path is always the last to go.

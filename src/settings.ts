@@ -172,9 +172,9 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 }
 
 /**
- * The top-left group for one frame. While pi's working status is embedded,
- * it stands in for every left segment except the leading Pi symbol, so the
- * symbol and its chevron never move when a stream starts or ends.
+ * The top-left group for one frame. While a pi status spinner is embedded, it
+ * stands in for every left segment except the leading Pi symbol, so the symbol
+ * and its chevron never move when a status appears or clears.
  */
 export function topLeftSegments(effective: EffectiveStatusLineSettings, working: boolean): StatusLineSegmentId[] {
 	if (!working) return effective.leftSegments;

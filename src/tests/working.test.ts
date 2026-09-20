@@ -1,8 +1,9 @@
 /**
- * Contracts for the opt-in embedded working indicator: the `working` segment
+ * Contracts for the opt-in embedded status indicator: the `working` segment
  * passes pi's pre-rendered status through verbatim, the top-left group swaps
  * everything but the Pi symbol for it while a stream is live, and the layout
- * truncates it (no ellipsis) before any other left segment is dropped.
+ * truncates it before any other left segment is dropped. The caller chooses
+ * whether truncated status text uses an ellipsis.
  */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -86,6 +87,26 @@ test("narrow widths truncate the status without an ellipsis and keep the pi symb
 	assert.ok(!plain.includes("…"), "no ellipsis");
 	assert.ok(!plain.includes("tokens"), "status tail is cut");
 	assert.equal(visibleWidth(bar), 20);
+});
+
+test("workingEllipsis marks truncated prose without changing the bar width", () => {
+	const status = "⠙ Context overflow detected, Auto-compacting... (esc to cancel)";
+	for (const width of [12, 16, 24, 40, 60]) {
+		const bar = buildStatusLine(
+			width,
+			ctxWith(status),
+			EFFECTIVE,
+			noGap,
+			{ left: ["pi", "working"], right: [] },
+			{ col: 0, row: 0 },
+			{ workingEllipsis: "…" },
+		);
+		const plain = stripAnsi(bar);
+		assert.ok(plain.includes(theme.icon.pi), `pi symbol survives at width ${width}`);
+		assert.ok(plain.includes("…"), `truncated status ends with an ellipsis at width ${width}`);
+		assert.ok(!plain.includes("cancel"), `status tail is cut at width ${width}`);
+		assert.equal(visibleWidth(bar), width, `width ${width}`);
+	}
 });
 
 test("a long ANSI-styled status never exceeds the bar width", () => {

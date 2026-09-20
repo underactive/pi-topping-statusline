@@ -27,8 +27,11 @@ function containsComponent(node: unknown, target: unknown, seen: Set<unknown>): 
 }
 
 /**
- * Let Pi's fullscreen footer slot collapse when its component renders no rows.
- * Pi 0.84 gives that VStack entry minSize=1, independently of render output.
+ * Let pi's fullscreen footer slot collapse when its component renders no rows.
+ * Hosts before 0.86 give that VStack entry minSize=1 regardless of render
+ * output; 0.86 fixed it (#8919), where this writes 0 over 0. Delete this
+ * helper, its index.ts call/restore path, and its test once the minimum
+ * supported host is 0.86.
  */
 export function collapseFooterLayoutSlot(layoutRoot: unknown, footer: unknown): (() => void) | undefined {
 	const seen = new Set<unknown>();

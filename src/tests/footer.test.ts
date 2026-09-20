@@ -48,6 +48,7 @@ test("filterVisibleRows drops empty notifications but keeps visible rows", () =>
 test("fullscreen footer slot can collapse and restores its minimum", () => {
 	const footer = { render: () => [] };
 	const footerContainer = { children: [footer] };
+	// minSize: 1 mirrors the footer dock shape used by hosts before pi 0.86.
 	const footerEntry = { component: footerContainer, minSize: 1 };
 	const dock = { entries: [{ component: {} }, footerEntry] };
 	const root = { entries: [{ component: {} }, { component: dock, minSize: 1 }] };

@@ -78,7 +78,7 @@ export interface StatusLineSettings {
 	nvidiaGreenBorder?: boolean;
 	/** Animate the Switchyard green border when it is visible. */
 	nvidiaGreenAnimation?: boolean;
-	/** Render pi's streaming working status in the top bar instead of its own row. */
+	/** Render pi's status spinners in the top bar instead of their own row. */
 	embedWorkingStatus?: boolean;
 }
 
@@ -144,8 +144,8 @@ export interface SegmentContext {
 	/** Pi's own footer stats, when this frame needs them. */
 	piStats: string | undefined;
 	/**
-	 * Pi's embedded working indicator, pre-rendered and pre-colored by the host
-	 * for this frame. Absent while no response is streaming.
+	 * Pi's embedded status spinner, pre-rendered and pre-colored by the host for
+	 * this frame. Absent while no status indicator is active.
 	 */
 	workingStatus?: string;
 	/** Live tok/s display state, when this frame needs it. */

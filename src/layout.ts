@@ -2,9 +2,11 @@
  * The bar layout engine, ported from oh-my-pi component.ts #buildStatusLine.
  *
  * Overflow strategy (in order): drop right segments right-to-left, truncate
- * the embedded `working` status (no ellipsis, as pi's own border does), shrink
- * the elastic `path` segment down to ~8 cells, drop left segments end-first
- * while protecting `path`. The gap between the two groups is filled with the
+ * the embedded `working` status with the caller's chosen ellipsis policy,
+ * shrink the elastic `path` segment down to ~8 cells, drop left segments
+ * end-first while protecting `path`. Working indicators retain pi's bare cut;
+ * message-style indicators use an ellipsis so truncated prose is apparent.
+ * The gap between the two groups is filled with the
  * box-horizontal glyph colored like the editor border, so it tracks the
  * thinking-level border color; the callback receives the gap's absolute
  * column and row in the box, so a caller can paint it as part of a
@@ -63,7 +65,7 @@ export function buildStatusLine(
 	gapBorderColor: (str: string, startCol: number, row: number) => string,
 	segmentGroups: { left: StatusLineSegmentId[]; right: StatusLineSegmentId[] },
 	barOrigin: { col: number; row: number } = { col: 0, row: 0 },
-	options: { leftFade?: number } = {},
+	options: { leftFade?: number; workingEllipsis?: string } = {},
 ): string {
 	const separatorDef = getSeparator(settings.separator);
 
@@ -124,7 +126,7 @@ export function buildStatusLine(
 		if (workingIdx >= 0 && totalWidth() > width) {
 			const available = visibleWidth(left[workingIdx]) - (totalWidth() - width);
 			if (available >= 1) {
-				left[workingIdx] = truncateToWidth(left[workingIdx], available, "");
+				left[workingIdx] = truncateToWidth(left[workingIdx], available, options.workingEllipsis ?? "");
 			} else {
 				left.splice(workingIdx, 1);
 				leftSegIds.splice(workingIdx, 1);

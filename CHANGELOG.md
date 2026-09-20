@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add the `nvidiaGreenBorder` setting to gate the Switchyard green gradient border (on by default)
 - Add the `nvidiaGreenAnimation` setting to animate that border independently of `rainbowAnimation` (on by default)
 
+### Changed
+
+- Relabel the embed setting to **Embed status spinners** and cover pi 0.86's working, retry, compaction, and branch-summary indicators
+- Hold a cleared status briefly before changing the left group, then cross-fade only the working spinner so handoffs no longer flash
+- Truncate non-working status messages with an ellipsis while retaining pi's bare cut for the working spinner
+- Preview pi 0.86's longest compaction message while the embed setting row is focused
+- Bump `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`, and `@earendil-works/pi-tui` devDependencies to 0.86.0
+- Document that `pi_stats` includes pi 0.86's cache-warming refreshes and can change while idle
+
+### Removed
+
+- Remove the obsolete `@earendil-works/pi-server` devDependency
+
 ## [0.2.0]
 
 ### Added

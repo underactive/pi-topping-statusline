@@ -154,7 +154,7 @@ function buildSections(settings: StatusLineSettings): MenuSection[] {
 			},
 			{
 				id: "embedWorkingStatus",
-				label: "Embed 'Working' indicator",
+				label: "Embed status spinners",
 				value: settings.embedWorkingStatus ?? false,
 			},
 		],
@@ -206,6 +206,8 @@ const CANNED_PERCENT = 42;
 const CANNED_WINDOW = 200_000;
 /** What pi's border indicator looks like mid-stream with pi-topping's loader installed. */
 const CANNED_WORKING = "⠙ Mulling ⢾⣿⣿⣿⣿⣿⢾⢾  28 tps · 11s · ↓ 316 tokens";
+/** pi 0.86's compaction spinner: the longest status the bar has to carry. */
+const CANNED_COMPACTION = "⠙ Context overflow detected, Auto-compacting... (esc to cancel)";
 
 /** Fill any feed the live session has no entry for, so the preview stays legible. */
 function cannedFeedData(
@@ -234,7 +236,7 @@ class StatusLinePreview {
 	render(
 		values: Record<string, MenuValue>,
 		elapsedMs: number,
-		_activeItemId: string | undefined,
+		activeItemId: string | undefined,
 		innerWidth: number,
 	): PreviewResult {
 		const effective = resolveEffectiveSettings(valuesToSettings(values));
@@ -292,9 +294,13 @@ class StatusLinePreview {
 				flat: s => this.#uiTheme.fg("border", s),
 			});
 			const embedOn = effective.embedWorkingStatus;
+			// Focusing the embed row demos the message-style spinners pi 0.86
+			// routes through the same slot, including their ellipsis truncation.
+			const compactionDemo = activeItemId === "embedWorkingStatus";
+			const sample = compactionDemo ? CANNED_COMPACTION : CANNED_WORKING;
 			const top = buildStatusLine(
 				barWidth,
-				embedOn ? { ...ctx, workingStatus: this.#uiTheme.fg("border", CANNED_WORKING) } : ctx,
+				embedOn ? { ...ctx, workingStatus: this.#uiTheme.fg("border", sample) } : ctx,
 				effective,
 				painters.gapColor,
 				{
@@ -302,6 +308,7 @@ class StatusLinePreview {
 					right: effective.rightSegments,
 				},
 				{ col: 3, row: 0 },
+				{ workingEllipsis: compactionDemo ? "…" : "" },
 			);
 			const bottom = buildStatusLine(
 				barWidth,
@@ -338,7 +345,7 @@ export function registerSettingsCommand(
 	onChange: () => void,
 ): void {
 	pi.registerCommand("topping-statusline-settings", {
-		description: "Configure transparent segments, statusline segments, separator, symbols, border style, feeds, rainbow border animation, the Switchyard NVIDIA-green border, and the embedded working indicator",
+		description: "Configure transparent segments, statusline segments, separator, symbols, border style, feeds, rainbow border animation, the Switchyard NVIDIA-green border, and the embedded status spinners",
 		handler: async (_args, ctx: ExtensionCommandContext) => {
 			if (ctx.mode !== "tui") {
 				ctx.ui.notify("/topping-statusline-settings requires TUI mode", "error");

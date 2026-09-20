@@ -314,9 +314,9 @@ const scrollHintSegment: StatusLineSegment = {
 };
 
 /**
- * Pi's embedded working indicator (spinner + message), already colored by the
- * host, so it is passed through verbatim. The layout truncates it, without an
- * ellipsis, when it overflows, mirroring pi's own border rendering.
+ * Pi's embedded status spinner (spinner + message), already colored by the
+ * host, so it is passed through verbatim. The layout applies the caller's
+ * truncation style: a bare cut for working, ellipsis for message-style kinds.
  */
 const workingSegment: StatusLineSegment = {
 	id: "working",
