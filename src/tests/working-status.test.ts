@@ -64,7 +64,7 @@ test("clearing a working status holds it, cross-fades both halves, then settles"
 });
 
 test("clearing message-style statuses holds them and then cuts without a fade", () => {
-	for (const kind of ["compaction", "retry"]) {
+	for (const kind of ["compaction", "retry"] as const) {
 		const transition = new StatusTransition();
 		transition.resolve(`⠙ ${kind}`, kind, 100);
 		assert.deepEqual(transition.resolve(undefined, undefined, 200), {

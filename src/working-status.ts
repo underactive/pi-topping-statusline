@@ -1,4 +1,7 @@
+import type { CustomEditor } from "@earendil-works/pi-coding-agent";
 import { easeFade } from "./theme.js";
+
+export type StatusIndicatorKind = NonNullable<Parameters<CustomEditor["setWorkingStatusIndicator"]>[0]>["kind"];
 
 /** Briefly retain a cleared status so handoffs between host indicators do not flash. */
 export const STATUS_HOLD_MS = 150;
@@ -10,7 +13,7 @@ export interface StatusFrame {
 	status: string | undefined;
 	leftFade?: number;
 	/** Kind of the status this frame shows, for truncation styling. */
-	kind: string | undefined;
+	kind: StatusIndicatorKind | undefined;
 	/** True while a hold or fade still needs repaints. */
 	pending: boolean;
 }
@@ -31,10 +34,10 @@ interface StatusExit {
 export class StatusTransition {
 	#liveShown = false;
 	#lastStatus: string | undefined;
-	#lastKind: string | undefined;
+	#lastKind: StatusIndicatorKind | undefined;
 	#exit: StatusExit | undefined;
 
-	resolve(live: string | undefined, kind: string | undefined, now: number): StatusFrame {
+	resolve(live: string | undefined, kind: StatusIndicatorKind | undefined, now: number): StatusFrame {
 		if (live !== undefined) {
 			this.#liveShown = true;
 			this.#lastStatus = live;

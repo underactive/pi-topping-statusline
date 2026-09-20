@@ -41,7 +41,7 @@ import { registerSettingsCommand } from "./src/settings-menu.js";
 import { createSettingsState, topLeftSegments } from "./src/settings.js";
 import { theme } from "./src/theme.js";
 import { TokenRateMonitor } from "./src/token-rate.js";
-import { StatusTransition } from "./src/working-status.js";
+import { type StatusIndicatorKind, StatusTransition } from "./src/working-status.js";
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
 
 const WORKING_FADE_FRAME_MS = 30;
@@ -63,7 +63,7 @@ export default function (pi: ExtensionAPI) {
 	// that editor. pi 0.85 sends only working; 0.86 sends all four kinds.
 	let activeEditor: CustomEditor | undefined;
 	let embeddedWorkingStatus: ((width: number) => string) | undefined;
-	let embeddedStatusKind: string | undefined;
+	let embeddedStatusKind: StatusIndicatorKind | undefined;
 	const statusTransition = new StatusTransition();
 	let workingFadeTimer: ReturnType<typeof setInterval> | undefined;
 	const stopWorkingFadeTimer = (): void => {
