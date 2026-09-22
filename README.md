@@ -36,7 +36,7 @@ and apply live.
 ║ ╰── ↑ 3 more ── ↑ 12.4K ↓ 3.1K R 148K W 12K 92.3% $0.42 42%──╯ ║
 ║                                                                ║
 ╟─ Global ───────────────────────────────────────────────────────╢
-║  ▸ [■] Transparent Segments                                ON  ║
+║  > [■] Transparent Segments                                ON  ║
 ║    Separator                               ‹ powerline-thin ›  ║
 ║    Symbols                                       ‹ nerdfont ›  ║
 ║    Border style                                   ‹ rounded ›  ║

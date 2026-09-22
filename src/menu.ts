@@ -16,7 +16,7 @@
  *   ║ ╭── π ⬢ model ───────────────────── session ──╮  ║
  *   ║                                                  ║
  *   ╟─ Global ─────────────────────────────────────────╢
- *   ║  ▸ [■] Transparent Segments                ON    ║
+ *   ║  > [■] Transparent Segments                ON    ║
  *   ║    Separator                ‹ powerline-thin ›   ║
  *   ║                                                  ║
  *   ╟──────────────────────────────────────────────────╢
@@ -597,15 +597,16 @@ export class MenuComponent implements Component {
 	private renderItemRow(item: MenuItem, selected: boolean, innerWidth: number): string {
 		const th = this.theme;
 		const value = this.values[item.id]!;
-		const marker = selected ? "\u25b8" : " ";
+		const marker = selected ? ">" : " ";
 		const markerColored = selected ? th.fg("accent", marker) : marker;
+		const rowBackground = (content: string) => (selected ? th.bg("selectedBg", content) : content);
 
 		if (item.action) {
 			const label = truncateToWidth(item.label, Math.max(0, innerWidth - 5));
 			const leftPlain = `  ${marker} ${label}`;
 			const pad = Math.max(0, innerWidth - visibleWidth(leftPlain));
 			const content = `  ${markerColored} ${th.fg(selected ? "accent" : "muted", label)}${" ".repeat(pad)}`;
-			return this.wrap("\u2551", content, "\u2551");
+			return this.wrap("\u2551", rowBackground(content), "\u2551");
 		}
 
 		if (item.text) {
@@ -626,7 +627,7 @@ export class MenuComponent implements Component {
 			const leftPlain = `  ${marker} ${label} ${fieldText}${caret}`;
 			const pad = Math.max(0, innerWidth - visibleWidth(leftPlain) - 1);
 			const content = `  ${markerColored} ${th.fg("dim", label)} ${fieldStyled}${editing ? th.fg("accent", caret) : ""}${" ".repeat(pad)} `;
-			return this.wrap("\u2551", content, "\u2551");
+			return this.wrap("\u2551", rowBackground(content), "\u2551");
 		}
 
 		if (item.cycleValues) {
@@ -638,7 +639,7 @@ export class MenuComponent implements Component {
 				const leftPlain = `  ${marker} ${label}`;
 				const gap = Math.max(1, innerWidth - visibleWidth(leftPlain) - visibleWidth(stateWord) - 2);
 				const content = `  ${markerColored} ${th.fg("text", label)}${" ".repeat(gap)}${th.fg("accent", stateWord)}  `;
-				return this.wrap("\u2551", content, "\u2551");
+				return this.wrap("\u2551", rowBackground(content), "\u2551");
 			}
 			const enabled = this.values[item.cycleEnabledBy] as boolean;
 			const maxLabelLen = Math.max(0, innerWidth - CHECKBOX_ROW_PREFIX_LEN - visibleWidth(stateWord) - 1);
@@ -646,7 +647,7 @@ export class MenuComponent implements Component {
 			const leftPlain = `  ${marker} [${enabled ? "■" : " "}] ${label}`;
 			const gap = Math.max(1, innerWidth - visibleWidth(leftPlain) - visibleWidth(stateWord) - 2);
 			const content = `  ${markerColored} [${enabled ? th.fg("success", "■") : th.fg("muted", " ")}] ${th.fg("text", label)}${" ".repeat(gap)}${enabled ? th.fg("accent", stateWord) : th.fg("muted", stateWord)}  `;
-			return this.wrap("\u2551", content, "\u2551");
+			return this.wrap("\u2551", rowBackground(content), "\u2551");
 		}
 
 		const enabled = value as boolean;
@@ -658,7 +659,7 @@ export class MenuComponent implements Component {
 		const leftPlain = `  ${marker} [${box}] ${label}`;
 		const gap = Math.max(1, innerWidth - visibleWidth(leftPlain) - visibleWidth(rightPlain));
 		const content = `  ${markerColored} [${enabled ? th.fg("success", box) : th.fg("muted", box)}] ${th.fg("text", label)}${" ".repeat(gap)}${enabled ? th.fg("success", stateWord) : th.fg("muted", stateWord)}  `;
-		return this.wrap("\u2551", content, "\u2551");
+		return this.wrap("\u2551", rowBackground(content), "\u2551");
 	}
 }
 

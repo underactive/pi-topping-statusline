@@ -4,7 +4,11 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import { MenuComponent } from "../menu.ts";
 import type { MenuSection } from "../menu.ts";
 
-const theme = { fg: (_c: string, s: string) => s, bold: (s: string) => s } as unknown as Theme;
+const theme = {
+	fg: (_c: string, s: string) => s,
+	bg: (color: string, s: string) => color === "selectedBg" ? `\x1b[48;5;1m${s}\x1b[49m` : s,
+	bold: (s: string) => s,
+} as unknown as Theme;
 const plain = (lines: string[]) => lines.map(l => l.replace(/\x1b\[[0-9;]*m/g, ""));
 
 function makeSections(feeds: { customType: string; prefix: string }[]): MenuSection[] {
@@ -46,6 +50,15 @@ function drive() {
 }
 
 const type = (menu: any, s: string) => { for (const ch of s) menu.handleInput(ch); };
+
+test("selected rows use the pi-topping marker and background", () => {
+	const { menu } = drive();
+	const lines = menu.render(60);
+	const plainText = plain(lines).join("\n");
+	assert.match(plainText, /> 1\. type/);
+	assert.ok(!plainText.includes("▸"));
+	assert.ok(lines.some(line => line.includes("\x1b[48;5;1m")), "selected row background is missing");
+});
 
 test("typing into a text row edits only on commit", () => {
 	const { menu } = drive();
