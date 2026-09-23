@@ -114,6 +114,26 @@ test("narrow widths truncate the status before dropping model details", () => {
 	assert.equal(visibleWidth(bar), 24);
 });
 
+test("opaque bars restore the group background after truncating the status", () => {
+	const status = "⠙ Mulling ⣾⣿⣿⣿⣿⣿⣾⣾  28 tps · 11s · ↓ 316 tokens";
+	const ctx = ctxWith(status);
+	ctx.model = { name: "Luna", id: "luna", provider: "openai-codex", reasoning: false };
+	const opaque = resolveEffectiveSettings({ transparent: false });
+	ctx.options = opaque.segmentOptions;
+	const bar = buildStatusLine(24, ctx, opaque, noGap, {
+		left: topLeftSegments(opaque, true),
+		right: [],
+	});
+	const plain = stripAnsi(bar);
+	assert.ok(plain.includes("⠙ Mull"), "status head is kept");
+	assert.ok(!plain.includes("tokens"), "status tail is cut");
+	const reset = theme.getBgAnsi() + theme.getFgAnsi("text");
+	const resetAt = bar.indexOf(reset);
+	const modelAt = bar.indexOf("Luna");
+	assert.ok(resetAt >= 0, "group background and text color are re-asserted after the truncated status");
+	assert.ok(resetAt < modelAt, "the reset lands before the model text");
+});
+
 test("overflow drops trailing model details before touching the live status", () => {
 	const status = "⠙ Working";
 	const ctx = ctxWith(status);

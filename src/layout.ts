@@ -142,7 +142,8 @@ export function buildStatusLine(
 		if (workingIdx >= 0 && totalWidth() > width) {
 			const available = visibleWidth(left[workingIdx]) - (totalWidth() - width);
 			if (available >= 1) {
-				left[workingIdx] = truncateToWidth(left[workingIdx], available, options.workingEllipsis ?? "");
+				left[workingIdx] =
+					truncateToWidth(left[workingIdx], available, options.workingEllipsis ?? "") + bgAnsi + fgAnsi;
 			} else {
 				left.splice(workingIdx, 1);
 				leftSegIds.splice(workingIdx, 1);
