@@ -118,11 +118,6 @@ const PLAIN_ROW_PREFIX_LEN = 5;
 const CHECKBOX_ROW_PREFIX_LEN = 8;
 
 interface FlatItem {
-	id: string;
-	label: string;
-	cycleValues?: readonly string[];
-	cycleEnabledBy?: string;
-	cycleDisabledValue?: string;
 	item: MenuItem;
 	sectionIndex: number;
 }
@@ -131,15 +126,7 @@ function flattenSections(sections: MenuSection[]): FlatItem[] {
 	const flat: FlatItem[] = [];
 	for (const [sectionIndex, section] of sections.entries()) {
 		for (const item of section.items) {
-			flat.push({
-				id: item.id,
-				label: item.label,
-				cycleValues: item.cycleValues,
-				cycleEnabledBy: item.cycleEnabledBy,
-				cycleDisabledValue: item.cycleDisabledValue,
-				item,
-				sectionIndex,
-			});
+			flat.push({ item, sectionIndex });
 		}
 	}
 	return flat;
@@ -260,26 +247,26 @@ export class MenuComponent implements Component {
 			[Key.space]: () => {
 				const item = this.flat[this.cursor]!;
 				if (item.item.action) {
-					this.runAction(item.id);
+					this.runAction(item.item.id);
 					return;
 				}
 				if (item.item.text) {
 					this.beginEditing(item);
 					return;
 				}
-				if (item.cycleValues && item.cycleEnabledBy) {
-					this.values[item.cycleEnabledBy] = !this.values[item.cycleEnabledBy] as boolean;
-					if (!this.values[item.cycleEnabledBy] && item.cycleDisabledValue !== undefined) {
-						this.values[item.id] = item.cycleDisabledValue;
+				if (item.item.cycleValues && item.item.cycleEnabledBy) {
+					this.values[item.item.cycleEnabledBy] = !this.values[item.item.cycleEnabledBy] as boolean;
+					if (!this.values[item.item.cycleEnabledBy] && item.item.cycleDisabledValue !== undefined) {
+						this.values[item.item.id] = item.item.cycleDisabledValue;
 					}
-				} else if (!item.cycleValues) this.values[item.id] = !this.values[item.id] as boolean;
+				} else if (!item.item.cycleValues) this.values[item.item.id] = !this.values[item.item.id] as boolean;
 				this.invalidate();
 			},
 			// Enter opens an editor or fires an action on those rows, so applying
 			// the whole menu stays available from any other row.
 			[Key.enter]: () => {
 				const item = this.flat[this.cursor]!;
-				if (item.item.action) this.runAction(item.id);
+				if (item.item.action) this.runAction(item.item.id);
 				else if (item.item.text) this.beginEditing(item);
 				else this.done({ applied: true, values: { ...this.values } });
 			},
@@ -297,7 +284,7 @@ export class MenuComponent implements Component {
 	}
 
 	private beginEditing(item: FlatItem): void {
-		this.editing = { id: item.id, buffer: String(this.values[item.id] ?? "") };
+		this.editing = { id: item.item.id, buffer: String(this.values[item.item.id] ?? "") };
 		this.invalidate();
 	}
 
@@ -373,10 +360,10 @@ export class MenuComponent implements Component {
 
 	private cycleCurrentValue(delta: number): void {
 		const item = this.flat[this.cursor]!;
-		if (!item.cycleValues?.length || (item.cycleEnabledBy && !this.values[item.cycleEnabledBy])) return;
-		const current = item.cycleValues.indexOf(this.values[item.id] as string);
-		const index = (current + delta + item.cycleValues.length) % item.cycleValues.length;
-		this.values[item.id] = item.cycleValues[index]!;
+		if (!item.item.cycleValues?.length || (item.item.cycleEnabledBy && !this.values[item.item.cycleEnabledBy])) return;
+		const current = item.item.cycleValues.indexOf(this.values[item.item.id] as string);
+		const index = (current + delta + item.item.cycleValues.length) % item.item.cycleValues.length;
+		this.values[item.item.id] = item.item.cycleValues[index]!;
 		this.invalidate();
 	}
 
@@ -386,7 +373,7 @@ export class MenuComponent implements Component {
 		const result = this.previewFn(
 			this.values,
 			this.previewOrigin !== undefined ? Date.now() - this.previewOrigin : 0,
-			this.flat[this.cursor]?.id,
+			this.flat[this.cursor]?.item.id,
 			innerWidth,
 		);
 		if (Array.isArray(result)) {
