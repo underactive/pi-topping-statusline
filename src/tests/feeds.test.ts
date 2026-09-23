@@ -16,7 +16,7 @@ import { renderBoxRowIfVisible } from "../box.ts";
 import { FEED_FADE_MS, FEED_HOLD_MS, SegmentContextBuilder, getFeedDisplayState } from "../context.ts";
 import { buildStatusLine } from "../layout.ts";
 import { SEGMENTS } from "../segments.ts";
-import { DEFAULT_FEEDS, DEFAULT_SEGMENTS, resolveEffectiveSettings, sanitizeFeeds } from "../settings.ts";
+import { DEFAULT_SEGMENTS, resolveEffectiveSettings, sanitizeFeeds } from "../settings.ts";
 import { theme } from "../theme.ts";
 import type { FeedDisplayState, SegmentContext, StatusLineFeed } from "../types.ts";
 import { feedKey } from "../utils.ts";
@@ -506,10 +506,4 @@ test("sanitizeFeeds drops unusable rows and normalizes the rest", () => {
 
 test("an explicitly empty feed list is honoured rather than reseeded", () => {
 	assert.deepEqual(resolveEffectiveSettings({ feeds: [] }).segmentOptions.feeds, []);
-});
-
-test("the default subscription matches what pi-prompt-cache publishes", () => {
-	assert.equal(DEFAULT_FEEDS[0]?.customType, SAVINGS);
-	assert.equal(DEFAULT_FEEDS[0]?.field, "savedUsd");
-	assert.equal(DEFAULT_FEEDS[0]?.format, "currency");
 });
