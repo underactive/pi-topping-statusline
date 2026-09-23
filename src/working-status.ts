@@ -3,6 +3,8 @@ import { easeFade } from "./theme.js";
 
 export type StatusIndicatorKind = NonNullable<Parameters<CustomEditor["setWorkingStatusIndicator"]>[0]>["kind"];
 
+/** Slide-out time for a status that appears while the top-left group shows none. */
+export const STATUS_SLIDE_MS = 300;
 /** Briefly retain a cleared status so handoffs between host indicators do not flash. */
 export const STATUS_HOLD_MS = 150;
 /** Cross-fade budget when the embedded working status disappears: half out, half in. */
@@ -13,13 +15,15 @@ export function isMessageKind(kind: StatusIndicatorKind | undefined): boolean {
 	return kind !== undefined && kind !== "working";
 }
 
-/** Which status the top-left group shows this frame and how far it has faded. */
+/** Which status the top-left group shows this frame and how far it has slid out or faded. */
 export interface StatusFrame {
 	status: string | undefined;
 	leftFade?: number;
+	/** How far the status has slid out (0..1); absent once it is fully out. */
+	reveal?: number;
 	/** Kind of the status this frame shows, for truncation styling. */
 	kind: StatusIndicatorKind | undefined;
-	/** True while a hold or fade still needs repaints. */
+	/** True while a slide, hold, or fade still needs repaints. */
 	pending: boolean;
 }
 
@@ -31,24 +35,29 @@ interface StatusExit {
 /**
  * Resolve host status-indicator handoffs into stable top-bar frames.
  *
- * pi 0.86 routes working, retry, compaction, and branch-summary indicators
- * through the editor border and may clear the slot between them. A cleared
- * status is held briefly to bridge that gap. Only the working indicator — the
- * one that genuinely ends a stream — then cross-fades back to user segments.
+ * A status that appears while the top-left group shows none slides out over
+ * STATUS_SLIDE_MS. pi 0.86 routes working, retry, compaction, and
+ * branch-summary indicators through the editor border and may clear the slot
+ * between them. A cleared status is held briefly to bridge that gap, and a
+ * status arriving while the previous one is still drawn takes its place
+ * without sliding again. Only the working indicator — the one that genuinely
+ * ends a stream — then cross-fades back to user segments.
  */
 export class StatusTransition {
 	#liveShown = false;
 	#lastStatus: string | undefined;
 	#lastKind: StatusIndicatorKind | undefined;
 	#exit: StatusExit | undefined;
+	#slideFrom: number | undefined;
 
 	resolve(live: string | undefined, kind: StatusIndicatorKind | undefined, now: number): StatusFrame {
 		if (live !== undefined) {
+			if (!this.#liveShown && !this.#exitDrawsStatus(now)) this.#slideFrom = now;
 			this.#liveShown = true;
 			this.#lastStatus = live;
 			this.#lastKind = kind;
 			this.#exit = undefined;
-			return { status: live, kind, pending: false };
+			return this.#withSlide({ status: live, kind, pending: false }, now);
 		}
 
 		if (this.#liveShown) {
@@ -62,7 +71,7 @@ export class StatusTransition {
 		const exit = this.#exit;
 		if (!exit) return { status: undefined, kind: undefined, pending: false };
 		if (now < exit.holdUntil) {
-			return { status: this.#lastStatus, kind: this.#lastKind, pending: true };
+			return this.#withSlide({ status: this.#lastStatus, kind: this.#lastKind, pending: true }, now);
 		}
 		const elapsed = now - exit.holdUntil;
 		if (elapsed >= exit.fadeMs) {
@@ -72,17 +81,14 @@ export class StatusTransition {
 		const half = exit.fadeMs / 2;
 		const outgoing = elapsed < half;
 		const leftFade = easeFade(outgoing ? 1 - elapsed / half : (elapsed - half) / half);
-		return {
-			status: outgoing ? this.#lastStatus : undefined,
-			kind: outgoing ? this.#lastKind : undefined,
-			leftFade,
-			pending: true,
-		};
+		if (!outgoing) return { status: undefined, kind: undefined, leftFade, pending: true };
+		return this.#withSlide({ status: this.#lastStatus, kind: this.#lastKind, leftFade, pending: true }, now);
 	}
 
 	pending(now: number): boolean {
 		const exit = this.#exit;
-		return exit !== undefined && now < exit.holdUntil + exit.fadeMs;
+		if (exit) return now < exit.holdUntil + exit.fadeMs;
+		return this.#slideFrom !== undefined && now < this.#slideFrom + STATUS_SLIDE_MS;
 	}
 
 	reset(): void {
@@ -90,9 +96,30 @@ export class StatusTransition {
 		this.#clearExit();
 	}
 
+	/** A cleared status is still drawn through its hold and the fade's outgoing half. */
+	#exitDrawsStatus(now: number): boolean {
+		const exit = this.#exit;
+		return exit !== undefined && now < exit.holdUntil + exit.fadeMs / 2;
+	}
+
+	/**
+	 * Add slide-out progress to a frame that draws a status. A status cleared
+	 * mid-slide keeps sliding through its exit rather than snapping to full width.
+	 */
+	#withSlide(frame: StatusFrame, now: number): StatusFrame {
+		if (this.#slideFrom === undefined) return frame;
+		const progress = (now - this.#slideFrom) / STATUS_SLIDE_MS;
+		if (progress >= 1) {
+			this.#slideFrom = undefined;
+			return frame;
+		}
+		return { ...frame, reveal: easeFade(progress), pending: true };
+	}
+
 	#clearExit(): void {
 		this.#lastStatus = undefined;
 		this.#lastKind = undefined;
 		this.#exit = undefined;
+		this.#slideFrom = undefined;
 	}
 }

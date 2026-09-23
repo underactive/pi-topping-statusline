@@ -1,21 +1,56 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { STATUS_HOLD_MS, StatusTransition, WORKING_FADE_MS } from "../working-status.ts";
+import {
+	STATUS_HOLD_MS,
+	STATUS_SLIDE_MS,
+	type StatusIndicatorKind,
+	StatusTransition,
+	WORKING_FADE_MS,
+} from "../working-status.ts";
 
-test("a live status is returned verbatim without scheduling repaints", () => {
+/** Show a status early enough that its slide-out has finished by `at`. */
+function settle(transition: StatusTransition, status: string, kind: StatusIndicatorKind | undefined, at: number): void {
+	transition.resolve(status, kind, at - STATUS_SLIDE_MS);
+	transition.resolve(status, kind, at);
+}
+
+test("a status appearing over the user's segments slides out, then settles verbatim", () => {
 	const transition = new StatusTransition();
 
 	assert.deepEqual(transition.resolve("⠙ Working", "working", 1_000), {
 		status: "⠙ Working",
 		kind: "working",
+		reveal: 0,
+		pending: true,
+	});
+	// Spinner frames change the text mid-slide without restarting it.
+	const early = transition.resolve("⠹ Working", "working", 1_000 + STATUS_SLIDE_MS / 4).reveal ?? -1;
+	const late = transition.resolve("⠸ Working", "working", 1_000 + (STATUS_SLIDE_MS * 3) / 4).reveal ?? -1;
+	assert.ok(0 < early && early < late && late < 1, "reveal grows monotonically");
+	assert.equal(transition.pending(1_000 + STATUS_SLIDE_MS - 1), true);
+
+	assert.deepEqual(transition.resolve("⠼ Working", "working", 1_000 + STATUS_SLIDE_MS), {
+		status: "⠼ Working",
+		kind: "working",
 		pending: false,
 	});
-	assert.equal(transition.pending(1_000), false);
+	assert.equal(transition.pending(1_000 + STATUS_SLIDE_MS), false);
+});
+
+test("a status cleared mid-slide keeps sliding through its hold", () => {
+	const transition = new StatusTransition();
+	transition.resolve("⠙ Working", "working", 0);
+
+	const clearedAt = STATUS_SLIDE_MS / 4;
+	const cleared = transition.resolve(undefined, undefined, clearedAt);
+	const held = transition.resolve(undefined, undefined, clearedAt + STATUS_HOLD_MS / 2);
+	assert.equal(held.status, "⠙ Working");
+	assert.ok(0 < (cleared.reveal ?? 1) && (cleared.reveal ?? 1) < (held.reveal ?? 1), "the slide continues");
 });
 
 test("clearing a working status holds it, cross-fades both halves, then settles", () => {
 	const transition = new StatusTransition();
-	transition.resolve("⠙ Working", "working", 1_000);
+	settle(transition, "⠙ Working", "working", 1_000);
 
 	const clearedAt = 2_000;
 	const holdEndsAt = clearedAt + STATUS_HOLD_MS;
@@ -66,7 +101,7 @@ test("clearing a working status holds it, cross-fades both halves, then settles"
 test("clearing message-style statuses holds them and then cuts without a fade", () => {
 	for (const kind of ["compaction", "retry"] as const) {
 		const transition = new StatusTransition();
-		transition.resolve(`⠙ ${kind}`, kind, 100);
+		settle(transition, `⠙ ${kind}`, kind, 100);
 		assert.deepEqual(transition.resolve(undefined, undefined, 200), {
 			status: `⠙ ${kind}`,
 			kind,
@@ -87,7 +122,7 @@ test("clearing message-style statuses holds them and then cuts without a fade", 
 
 test("a new status during the hold cuts in immediately and cancels the exit", () => {
 	const transition = new StatusTransition();
-	transition.resolve("⠙ Working", "working", 1_000);
+	settle(transition, "⠙ Working", "working", 1_000);
 	transition.resolve(undefined, undefined, 1_100);
 
 	assert.deepEqual(transition.resolve("⠹ Retrying", "retry", 1_200), {
@@ -100,7 +135,7 @@ test("a new status during the hold cuts in immediately and cancels the exit", ()
 
 test("a new status during the fade cuts in immediately and cancels the exit", () => {
 	const transition = new StatusTransition();
-	transition.resolve("⠙ Working", "working", 0);
+	settle(transition, "⠙ Working", "working", 0);
 	transition.resolve(undefined, undefined, 100);
 	const fading = transition.resolve(undefined, undefined, 300);
 	assert.equal(fading.status, "⠙ Working");
@@ -112,6 +147,21 @@ test("a new status during the fade cuts in immediately and cancels the exit", ()
 		pending: false,
 	});
 	assert.equal(transition.pending(1_000), false);
+});
+
+test("a status arriving after the fade's outgoing half slides out again", () => {
+	const transition = new StatusTransition();
+	settle(transition, "⠙ Working", "working", 0);
+	transition.resolve(undefined, undefined, 100);
+
+	const incomingAt = 100 + STATUS_HOLD_MS + WORKING_FADE_MS / 2;
+	assert.equal(transition.resolve(undefined, undefined, incomingAt).status, undefined);
+	assert.deepEqual(transition.resolve("⠹ Retrying", "retry", incomingAt + 1), {
+		status: "⠹ Retrying",
+		kind: "retry",
+		reveal: 0,
+		pending: true,
+	});
 });
 
 test("a working-to-compaction handoff across the hold never yields an empty status", () => {
@@ -143,7 +193,7 @@ test("an undefined kind preserves the pre-0.86 working fade", () => {
 	});
 });
 
-test("reset clears live and exiting state", () => {
+test("reset clears live, exiting, and sliding state", () => {
 	const transition = new StatusTransition();
 	transition.resolve("⠙ Working", "working", 10);
 	transition.resolve(undefined, undefined, 20);
@@ -155,4 +205,5 @@ test("reset clears live and exiting state", () => {
 		pending: false,
 	});
 	assert.equal(transition.pending(21), false);
+	assert.equal(transition.resolve("⠹ Working", "working", 22).reveal, 0, "the next status slides from the start");
 });

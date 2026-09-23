@@ -101,10 +101,13 @@ to restore the normal theme or rainbow border.
 **Embed status spinners** (off by default) moves pi's status indicators out of their own row
 and into the top-left group, right after the Pi symbol and its chevron. On pi 0.86 and later
 this covers the working, retry, compaction, and branch-summary spinners; pi 0.85 embeds only
-the working indicator. The remaining left segments (model, path, git, PR) step aside while a
-status is visible, and the Pi symbol never moves. A cleared status is held briefly so handoffs
-between spinners do not flash the left segments. Only the end of a working spinner then
-cross-fades back over 750ms; the message-style spinners cut after the hold.
+the working indicator. The configured model, provider, and thinking details remain visible after
+the status; path, git, and PR step aside while a status is visible, and the Pi symbol never moves.
+An appearing status slides out from behind the Pi symbol's chevron over 300ms, pushing the model
+details right; one that replaces a status still on screen swaps in place without sliding.
+A cleared status is held briefly so handoffs between spinners do not flash the left segments.
+Only the working status cross-fades over 750ms; stable model details remain solid, and the
+message-style spinners cut after the hold.
 
 A status too long for the bar is truncated. The working spinner keeps pi's bare cut, while the
 message-style spinners use an ellipsis. Focusing the embed row in the settings preview shows

@@ -12,11 +12,15 @@
  * column and row in the box, so a caller can paint it as part of a
  * continuous border gradient (the rainbow effect).
  *
- * `options.leftFade` (0..1) blends every left segment after a leading `pi`
- * symbol toward the bar background, which the working-indicator transition
- * uses to cross-fade the group without moving the symbol or its chevron.
+ * `options.leftFade` (0..1) blends transient left segments toward the bar
+ * background while keeping the Pi symbol and model details solid, which the
+ * working-indicator transition uses without hiding stable model information.
+ * `options.workingReveal` (0..1) slides the `working` status out from behind
+ * the segment before it, trailing separator first, pushing the segments after
+ * it right. Overflow is resolved for the fully revealed status, so no segment
+ * appears or drops mid-slide and the last frame matches the settled bar.
  */
-import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { sliceByColumn, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { renderSegment } from "./segments.js";
 import { getSeparator } from "./separators.js";
 import { theme } from "./theme.js";
@@ -65,7 +69,7 @@ export function buildStatusLine(
 	gapBorderColor: (str: string, startCol: number, row: number) => string,
 	segmentGroups: { left: StatusLineSegmentId[]; right: StatusLineSegmentId[] },
 	barOrigin: { col: number; row: number } = { col: 0, row: 0 },
-	options: { leftFade?: number; workingEllipsis?: string } = {},
+	options: { leftFade?: number; workingReveal?: number; workingEllipsis?: string } = {},
 ): string {
 	const separatorDef = getSeparator(settings.separator);
 
@@ -73,6 +77,8 @@ export function buildStatusLine(
 	const transparentBg = bgAnsi === TRANSPARENT_BG_ANSI;
 	const fgAnsi = theme.getFgAnsi("text");
 	const sepAnsi = theme.getFgAnsi("statusLineSep");
+	const leftSepText = ` ${sepAnsi}${separatorDef.left}${fgAnsi} `;
+	const rightSepText = ` ${sepAnsi}${separatorDef.right}${fgAnsi} `;
 
 	const left: string[] = [];
 	const leftSegIds: StatusLineSegmentId[] = [];
@@ -158,25 +164,45 @@ export function buildStatusLine(
 		}
 	}
 
-	const renderGroup = (parts: string[], direction: "left" | "right", fadeFrom = parts.length): string => {
-		if (parts.length === 0) return "";
-		const sep = direction === "left" ? separatorDef.left : separatorDef.right;
-		const capPrefix = bgAnsi.replace("\x1b[48;", "\x1b[38;");
-		const sepText = ` ${sepAnsi}${sep}${fgAnsi} `;
-
-		let body: string;
-		const fade = options.leftFade;
-		if (fade !== undefined && fade < 1 && fadeFrom < parts.length) {
-			// The faded tail opens with an explicit default-fg reset so plain text
-			// inside it is recolored too, not just segments that set their own color.
-			const head = parts.slice(0, fadeFrom).join(sepText);
-			const tail = `\x1b[39m${parts.slice(fadeFrom).join(sepText)}`;
-			body = head + theme.fadeAnsi((head ? sepText : "") + tail, fade);
-		} else {
-			body = parts.join(sepText);
+	const fade = options.leftFade;
+	if (fade !== undefined && fade < 1) {
+		for (const [i, id] of leftSegIds.entries()) {
+			if (id === "pi" || id === "model") continue;
+			// Reset first so plain text is recolored too, not just segments that
+			// set their own foreground color.
+			left[i] = theme.fadeAnsi(`\x1b[39m${left[i]}`, fade);
 		}
+	}
+
+	const reveal = options.workingReveal;
+	const slideIdx = leftSegIds.indexOf("working");
+	if (reveal !== undefined && reveal < 1 && slideIdx >= 0) {
+		// Only the status's tail has emerged. Ahead of another segment, the tail
+		// includes the separator between them and is joined onto that segment,
+		// which then moves right one cell per revealed cell.
+		const pushes = slideIdx < left.length - 1;
+		const unit = pushes ? left[slideIdx] + leftSepText : left[slideIdx];
+		const unitWidth = visibleWidth(unit);
+		const shown = Math.round(unitWidth * reveal);
+		if (shown <= 0) {
+			left.splice(slideIdx, 1);
+			leftSegIds.splice(slideIdx, 1);
+		} else if (pushes) {
+			left.splice(slideIdx, 2, sliceByColumn(unit, unitWidth - shown, shown) + left[slideIdx + 1]);
+			leftSegIds.splice(slideIdx, 1);
+		} else {
+			left[slideIdx] = sliceByColumn(unit, unitWidth - shown, shown);
+		}
+		leftWidth = leftGroupWidth(left);
+	}
+
+	const renderGroup = (parts: string[], direction: "left" | "right"): string => {
+		if (parts.length === 0) return "";
+		const capPrefix = bgAnsi.replace("\x1b[48;", "\x1b[38;");
+		const sepText = direction === "left" ? leftSepText : rightSepText;
+
 		let content = bgAnsi + fgAnsi;
-		content += ` ${body} `;
+		content += ` ${parts.join(sepText)} `;
 		content += "\x1b[0m";
 
 		if (capLeft) content = `${capPrefix}${capLeft}\x1b[0m${content}`;
@@ -184,7 +210,7 @@ export function buildStatusLine(
 		return content;
 	};
 
-	const leftGroup = renderGroup(left, "left", leftSegIds[0] === "pi" ? 1 : 0);
+	const leftGroup = renderGroup(left, "left");
 	const rightGroup = renderGroup(right, "right");
 	if (!leftGroup && !rightGroup) return "";
 

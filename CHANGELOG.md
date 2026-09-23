@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Keep configured model, provider, and thinking details visible after embedded status spinners
+- Slide an appearing embedded status out from behind the Pi symbol over 300ms, pushing the model details right, instead of cutting it in
+
 ### Fixed
 
 - Replace the settings menu's `▸` marker with `>` and highlight the selected row with pi-topping's `selectedBg` color

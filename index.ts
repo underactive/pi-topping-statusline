@@ -44,7 +44,7 @@ import { TokenRateMonitor } from "./src/token-rate.js";
 import { isMessageKind, type StatusIndicatorKind, StatusTransition } from "./src/working-status.js";
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
 
-const WORKING_FADE_FRAME_MS = 30;
+const STATUS_ANIMATION_FRAME_MS = 30;
 
 export default function (pi: ExtensionAPI) {
 	const state = createSettingsState();
@@ -65,10 +65,10 @@ export default function (pi: ExtensionAPI) {
 	let embeddedWorkingStatus: ((width: number) => string) | undefined;
 	let embeddedStatusKind: StatusIndicatorKind | undefined;
 	const statusTransition = new StatusTransition();
-	let workingFadeTimer: ReturnType<typeof setInterval> | undefined;
-	const stopWorkingFadeTimer = (): void => {
-		if (workingFadeTimer) clearInterval(workingFadeTimer);
-		workingFadeTimer = undefined;
+	let statusAnimationTimer: ReturnType<typeof setInterval> | undefined;
+	const stopStatusAnimationTimer = (): void => {
+		if (statusAnimationTimer) clearInterval(statusAnimationTimer);
+		statusAnimationTimer = undefined;
 	};
 
 	const syncEmbed = (): void => {
@@ -82,13 +82,13 @@ export default function (pi: ExtensionAPI) {
 
 	const requestRender = () => activeTui?.requestRender();
 	builder.setRequestRender(requestRender);
-	const startWorkingFadeTimer = (): void => {
-		if (workingFadeTimer) return;
-		workingFadeTimer = setInterval(() => {
+	const startStatusAnimationTimer = (): void => {
+		if (statusAnimationTimer) return;
+		statusAnimationTimer = setInterval(() => {
 			requestRender();
-			if (!statusTransition.pending(Date.now())) stopWorkingFadeTimer();
-		}, WORKING_FADE_FRAME_MS);
-		workingFadeTimer.unref?.();
+			if (!statusTransition.pending(Date.now())) stopStatusAnimationTimer();
+		}, STATUS_ANIMATION_FRAME_MS);
+		statusAnimationTimer.unref?.();
 	};
 
 	const rateMonitor = new TokenRateMonitor(requestRender);
@@ -180,7 +180,7 @@ export default function (pi: ExtensionAPI) {
 		// The layout truncates the status to fit, so it is rendered at full width here.
 		const live = effective.embedWorkingStatus ? embeddedWorkingStatus?.(innerWidth) || undefined : undefined;
 		const frame = statusTransition.resolve(live, embeddedStatusKind, Date.now());
-		if (frame.pending) startWorkingFadeTimer();
+		if (frame.pending) startStatusAnimationTimer();
 		const bar = buildStatusLine(
 			innerWidth,
 			{ ...segCtx, workingStatus: frame.status },
@@ -193,6 +193,7 @@ export default function (pi: ExtensionAPI) {
 			{ col: 3, row: 0 },
 			{
 				leftFade: frame.leftFade,
+				workingReveal: frame.reveal,
 				workingEllipsis: isMessageKind(frame.kind) ? "…" : "",
 			},
 		);
@@ -393,7 +394,7 @@ export default function (pi: ExtensionAPI) {
 		activeEditor = undefined;
 		embeddedWorkingStatus = undefined;
 		embeddedStatusKind = undefined;
-		stopWorkingFadeTimer();
+		stopStatusAnimationTimer();
 		statusTransition.reset();
 		activeTui = undefined;
 		activeCtx = undefined;

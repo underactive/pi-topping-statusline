@@ -173,12 +173,16 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 
 /**
  * The top-left group for one frame. While a pi status spinner is embedded, it
- * stands in for every left segment except the leading Pi symbol, so the symbol
- * and its chevron never move when a status appears or clears.
+ * stands in for the path and repository segments but keeps the leading Pi
+ * symbol and configured model details visible.
  */
 export function topLeftSegments(effective: EffectiveStatusLineSettings, working: boolean): StatusLineSegmentId[] {
 	if (!working) return effective.leftSegments;
-	return effective.leftSegments[0] === "pi" ? ["pi", "working"] : ["working"];
+	const segments: StatusLineSegmentId[] = [];
+	if (effective.leftSegments.includes("pi")) segments.push("pi");
+	segments.push("working");
+	if (effective.leftSegments.includes("model")) segments.push("model");
+	return segments;
 }
 
 export interface SettingsState {
