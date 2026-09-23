@@ -265,13 +265,11 @@ export default function (pi: ExtensionAPI) {
 				try {
 					return renderBoxed(innerRender, width, editor);
 				} catch (err) {
-					if (!boxRenderFailed) {
-						boxRenderFailed = true;
-						activeCtx?.ui.notify(
-							`Statusline render failed, using plain editor: ${err instanceof Error ? err.message : String(err)}`,
-							"error",
-						);
-					}
+					boxRenderFailed = true;
+					activeCtx?.ui.notify(
+						`Statusline render failed, using plain editor: ${err instanceof Error ? err.message : String(err)}`,
+						"error",
+					);
 					return innerRender(width);
 				}
 			};
