@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Theme } from "@earendil-works/pi-coding-agent";
+import { stripAnsi } from "../footer.ts";
 import { MenuComponent } from "../menu.ts";
 import type { MenuSection } from "../menu.ts";
 
@@ -10,7 +11,7 @@ const theme = {
 	bold: (s: string) => s,
 	getBgAnsi: (color: string) => color === "selectedBg" ? "\x1b[48;5;1m" : "",
 } as unknown as Theme;
-const plain = (lines: string[]) => lines.map(l => l.replace(/\x1b\[[0-9;]*m/g, ""));
+const plain = (lines: string[]) => lines.map(stripAnsi);
 
 function makeSections(feeds: { customType: string; prefix: string }[]): MenuSection[] {
 	const items: any[] = [];

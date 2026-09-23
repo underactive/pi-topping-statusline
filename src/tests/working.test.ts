@@ -9,6 +9,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { visibleWidth } from "@earendil-works/pi-tui";
+import { stripAnsi } from "../footer.ts";
 import { buildStatusLine } from "../layout.ts";
 import { SEGMENTS } from "../segments.ts";
 import { getSeparator } from "../separators.ts";
@@ -16,7 +17,6 @@ import { resolveEffectiveSettings, topLeftSegments } from "../settings.ts";
 import { easeFade, theme } from "../theme.ts";
 import type { SegmentContext, StatusLineSegmentId } from "../types.ts";
 
-const stripAnsi = (text: string) => text.replace(/\x1b\[[0-9;]*m/g, "");
 const noGap = (s: string) => s;
 
 const EFFECTIVE = resolveEffectiveSettings({ transparent: true });

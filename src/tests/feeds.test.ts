@@ -14,6 +14,7 @@ import test from "node:test";
 import type { ExtensionAPI, ExtensionContext, SessionEntry } from "@earendil-works/pi-coding-agent";
 import { renderBoxRowIfVisible } from "../box.ts";
 import { FEED_FADE_MS, FEED_HOLD_MS, SegmentContextBuilder, getFeedDisplayState } from "../context.ts";
+import { stripAnsi } from "../footer.ts";
 import { buildStatusLine } from "../layout.ts";
 import { SEGMENTS } from "../segments.ts";
 import { DEFAULT_SEGMENTS, resolveEffectiveSettings, sanitizeFeeds } from "../settings.ts";
@@ -31,7 +32,6 @@ const feedMap = (entries: Record<string, unknown> = {}): Record<string, unknown>
 	Object.assign(Object.create(null) as Record<string, unknown>, entries);
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const stripAnsi = (text: string) => text.replace(/\x1b\[[0-9;]*m/g, "");
 
 // Partial stand-ins: the builder only reaches the members defined here.
 const fakePi = { exec: async () => undefined, getThinkingLevel: () => "off" } as unknown as ExtensionAPI;

@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { SegmentContextBuilder } from "../context.ts";
+import { stripAnsi } from "../footer.ts";
 import { SEGMENTS } from "../segments.ts";
 import { resolveEffectiveSettings } from "../settings.ts";
 import { FADE_SHADE_COUNT, theme } from "../theme.ts";
@@ -31,7 +32,7 @@ const BASE = builder.build(
 );
 
 const render = (tokenRate: TokenRateDisplay) => SEGMENTS.token_rate.render({ ...BASE, tokenRate });
-const plain = (tokenRate: TokenRateDisplay) => render(tokenRate).content.replace(/\x1b\[[0-9;]*m/g, "");
+const plain = (tokenRate: TokenRateDisplay) => stripAnsi(render(tokenRate).content);
 const active = (rate: number | null): TokenRateDisplay => ({ rate, phase: "active", fadeShade: 0 });
 
 test("the rate is right-aligned to the placeholder's width", () => {
