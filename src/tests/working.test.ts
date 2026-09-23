@@ -114,6 +114,27 @@ test("narrow widths truncate the status before dropping model details", () => {
 	assert.equal(visibleWidth(bar), 24);
 });
 
+test("overflow drops trailing model details before touching the live status", () => {
+	const status = "⠙ Working";
+	const ctx = ctxWith(status);
+	ctx.model = { name: "GPT-5.6 Luna", id: "gpt-5.6", provider: "openai-codex", reasoning: true };
+	ctx.thinkingLevel = "max";
+	const effective = resolveEffectiveSettings({
+		transparent: true,
+		segments: { model: true, provider: true, thinking: true },
+	});
+	ctx.options = effective.segmentOptions;
+	const bar = buildStatusLine(34, ctx, effective, noGap, {
+		left: topLeftSegments(effective, true),
+		right: [],
+	});
+	const plain = stripAnsi(bar);
+	assert.ok(plain.includes(theme.icon.pi), "pi symbol survives");
+	assert.ok(plain.includes("⠙ Working"), "the spinner status survives untruncated");
+	assert.ok(!plain.includes("GPT-5.6"), "model details are dropped to protect the live status");
+	assert.equal(visibleWidth(bar), 34);
+});
+
 test("workingEllipsis marks truncated prose without changing the bar width", () => {
 	const status = "⠙ Context overflow detected, Auto-compacting... (esc to cancel)";
 	for (const width of [24, 40, 60]) {

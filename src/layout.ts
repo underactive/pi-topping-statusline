@@ -127,8 +127,18 @@ export function buildStatusLine(
 			rightWidth = rightGroupWidth(right);
 		}
 		// The working status absorbs overflow first so the Pi symbol beside it
-		// survives on narrow terminals.
+		// survives on narrow terminals. Segments trailing it are dropped first so
+		// a static segment (e.g. model) never outlives the live status indicator.
 		const workingIdx = leftSegIds.indexOf("working");
+		while (
+			workingIdx >= 0 &&
+			workingIdx < left.length - 1 &&
+			visibleWidth(left[workingIdx]) - (totalWidth() - width) < 1
+		) {
+			left.pop();
+			leftSegIds.pop();
+			leftWidth = leftGroupWidth(left);
+		}
 		if (workingIdx >= 0 && totalWidth() > width) {
 			const available = visibleWidth(left[workingIdx]) - (totalWidth() - width);
 			if (available >= 1) {
