@@ -167,7 +167,12 @@ export default function (pi: ExtensionAPI) {
 
 		const hint = stripAnsi(lines[bottomIdx] ?? "").match(/[↑↓] \d+ more/)?.[0] ?? "";
 		const effective = state.effective;
-		const include = effective.includes;
+		// The layout truncates the status to fit, so it is rendered at full width here.
+		const live = effective.embedWorkingStatus ? embeddedWorkingStatus?.(innerWidth) || undefined : undefined;
+		const frame = statusTransition.resolve(live, embeddedStatusKind, Date.now());
+		if (frame.pending) startStatusAnimationTimer();
+		const include =
+			frame.status === undefined ? effective.includes : { ...effective.includes, git: false, pr: false };
 		const segCtx = builder.build(innerWidth, effective.segmentOptions, include, hint || undefined);
 		// borderColor is assigned by the host after the factory returns — read late.
 		const border = editor.borderColor ?? ((s: string) => s);
@@ -181,10 +186,6 @@ export default function (pi: ExtensionAPI) {
 			bottomIdx,
 			flat: border,
 		});
-		// The layout truncates the status to fit, so it is rendered at full width here.
-		const live = effective.embedWorkingStatus ? embeddedWorkingStatus?.(innerWidth) || undefined : undefined;
-		const frame = statusTransition.resolve(live, embeddedStatusKind, Date.now());
-		if (frame.pending) startStatusAnimationTimer();
 		const bar = buildStatusLine(
 			innerWidth,
 			{ ...segCtx, workingStatus: frame.status },
