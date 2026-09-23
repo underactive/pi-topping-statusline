@@ -487,8 +487,8 @@ export class MenuComponent implements Component {
 	}
 
 	private availableRows(): number | undefined {
-		const rows = (this.tui as (TUI & { terminal?: { rows?: number } }) | undefined)?.terminal?.rows;
-		return typeof rows === "number" && Number.isFinite(rows) && rows > 0 ? Math.floor(rows) : undefined;
+		const rows = this.tui?.terminal.rows;
+		return rows !== undefined && rows > 0 ? rows : undefined;
 	}
 
 	private buildLines(maxWidth: number, maxRows?: number): string[] {
