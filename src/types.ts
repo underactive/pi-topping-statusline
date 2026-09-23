@@ -125,8 +125,6 @@ export interface EffectiveStatusLineSettings {
 export interface SegmentContext {
 	options: StatusLineSegmentOptions;
 	model: { name?: string; id: string; provider: string; reasoning: boolean } | undefined;
-	/** Provider-reported model that served the latest response, when it differs from the configured model. */
-	responseModel?: string;
 	thinkingLevel: string;
 	cwd: string;
 	sessionName: string | undefined;

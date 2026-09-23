@@ -1,34 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-	AppearanceTransition,
 	STATUS_HOLD_MS,
 	STATUS_SLIDE_MS,
 	type StatusIndicatorKind,
 	StatusTransition,
 	WORKING_FADE_MS,
 } from "../working-status.ts";
-
-test("appearance transition slides once per absent-to-present change", () => {
-	const transition = new AppearanceTransition();
-	assert.deepEqual(transition.resolve(false, 900), { pending: false });
-	assert.deepEqual(transition.resolve(true, 1_000), { reveal: 0, pending: true });
-	const middle = transition.resolve(true, 1_000 + STATUS_SLIDE_MS / 2);
-	assert.ok(0 < (middle.reveal ?? -1) && (middle.reveal ?? -1) < 1);
-	assert.deepEqual(transition.resolve(true, 1_000 + STATUS_SLIDE_MS), { pending: false });
-	assert.deepEqual(transition.resolve(true, 2_000), { pending: false }, "visible content does not restart");
-
-	transition.resolve(false, 2_001);
-	assert.deepEqual(transition.resolve(true, 2_002), { reveal: 0, pending: true }, "a later appearance restarts");
-});
-
-test("appearance transition reset cancels and rearms the slide", () => {
-	const transition = new AppearanceTransition();
-	transition.resolve(true, 100);
-	transition.reset();
-	assert.equal(transition.pending(101), false);
-	assert.deepEqual(transition.resolve(true, 102), { reveal: 0, pending: true });
-});
 
 /** Show a status early enough that its slide-out has finished by `at`. */
 function settle(transition: StatusTransition, status: string, kind: StatusIndicatorKind | undefined, at: number): void {

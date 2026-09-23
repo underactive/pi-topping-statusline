@@ -37,12 +37,12 @@ import {
 import { buildStatusLine } from "./src/layout.js";
 import { NvidiaGreenBorder, isSwitchyardProvider } from "./src/nvidia-green.js";
 import { RAINBOW_DEG_PER_FRAME, RAINBOW_FRAME_MS, RainbowBorder, type BorderColorizer } from "./src/rainbow.js";
-import { responseModelSuffix } from "./src/segments.js";
 import { registerSettingsCommand } from "./src/settings-menu.js";
 import { createSettingsState, topLeftSegments } from "./src/settings.js";
 import { theme } from "./src/theme.js";
 import { TokenRateMonitor } from "./src/token-rate.js";
-import { AppearanceTransition, isMessageKind, type StatusIndicatorKind, StatusTransition } from "./src/working-status.js";
+import { isMessageKind, type StatusIndicatorKind, StatusTransition } from "./src/working-status.js";
+import { hostsWorkingStatus, WORKING_STATUS_EMBED_CHANNEL } from "./src/working-status-embed.js";
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
 
 const STATUS_ANIMATION_FRAME_MS = 30;
@@ -65,9 +65,7 @@ export default function (pi: ExtensionAPI) {
 	let activeEditor: CustomEditor | undefined;
 	let embeddedWorkingStatus: ((width: number) => string) | undefined;
 	let embeddedStatusKind: StatusIndicatorKind | undefined;
-	let responseModel: string | undefined;
 	const statusTransition = new StatusTransition();
-	const responseModelTransition = new AppearanceTransition();
 	let statusAnimationTimer: ReturnType<typeof setInterval> | undefined;
 	const stopStatusAnimationTimer = (): void => {
 		if (statusAnimationTimer) clearInterval(statusAnimationTimer);
@@ -83,14 +81,16 @@ export default function (pi: ExtensionAPI) {
 		ctx.ui.setEditorComponent(factory);
 	};
 
+	// pi-topping slides its loader's response model out only while this bar hosts the loader.
+	const announceEmbed = (embedded: boolean): void => pi.events.emit(WORKING_STATUS_EMBED_CHANNEL, { embedded });
+
 	const requestRender = () => activeTui?.requestRender();
 	builder.setRequestRender(requestRender);
 	const startStatusAnimationTimer = (): void => {
 		if (statusAnimationTimer) return;
 		statusAnimationTimer = setInterval(() => {
 			requestRender();
-			const now = Date.now();
-			if (!statusTransition.pending(now) && !responseModelTransition.pending(now)) stopStatusAnimationTimer();
+			if (!statusTransition.pending(Date.now())) stopStatusAnimationTimer();
 		}, STATUS_ANIMATION_FRAME_MS);
 		statusAnimationTimer.unref?.();
 	};
@@ -168,7 +168,7 @@ export default function (pi: ExtensionAPI) {
 		const hint = stripAnsi(lines[bottomIdx] ?? "").match(/[↑↓] \d+ more/)?.[0] ?? "";
 		const effective = state.effective;
 		const include = effective.includes;
-		const segCtx = builder.build(innerWidth, effective.segmentOptions, include, hint || undefined, responseModel);
+		const segCtx = builder.build(innerWidth, effective.segmentOptions, include, hint || undefined);
 		// borderColor is assigned by the host after the factory returns — read late.
 		const border = editor.borderColor ?? ((s: string) => s);
 		const colorizer = borderColorizer();
@@ -183,10 +183,8 @@ export default function (pi: ExtensionAPI) {
 		});
 		// The layout truncates the status to fit, so it is rendered at full width here.
 		const live = effective.embedWorkingStatus ? embeddedWorkingStatus?.(innerWidth) || undefined : undefined;
-		const now = Date.now();
-		const frame = statusTransition.resolve(live, embeddedStatusKind, now);
-		const responseModelFrame = responseModelTransition.resolve(responseModelSuffix(segCtx) !== undefined, now);
-		if (frame.pending || responseModelFrame.pending) startStatusAnimationTimer();
+		const frame = statusTransition.resolve(live, embeddedStatusKind, Date.now());
+		if (frame.pending) startStatusAnimationTimer();
 		const bar = buildStatusLine(
 			innerWidth,
 			{ ...segCtx, workingStatus: frame.status },
@@ -200,7 +198,6 @@ export default function (pi: ExtensionAPI) {
 			{
 				leftFade: frame.leftFade,
 				workingReveal: frame.reveal,
-				responseModelReveal: responseModelFrame.reveal,
 				workingEllipsis: isMessageKind(frame.kind) ? "…" : "",
 			},
 		);
@@ -259,6 +256,7 @@ export default function (pi: ExtensionAPI) {
 				activeEditor = own;
 				editor = own;
 			}
+			announceEmbed(hostsWorkingStatus(activeEditor));
 			const innerRender = editor.render.bind(editor);
 			let boxRenderFailed = false;
 			editor.render = width => {
@@ -346,29 +344,7 @@ export default function (pi: ExtensionAPI) {
 		}
 	};
 
-	// Providers report the model that actually served a response (a router's
-	// resolved model, a fallback) mid-stream or only once it ends. It stays
-	// visible until the next assistant response starts.
-	const noteResponseModel = (next: string | undefined): void => {
-		if (!next || next === responseModel) return;
-		responseModel = next;
-		requestRender();
-	};
-	pi.on("message_start", event => {
-		if (event.message.role !== "assistant") return;
-		responseModel = event.message.responseModel;
-		responseModelTransition.reset();
-		requestRender();
-	});
-	pi.on("message_update", event => {
-		if (event.message.role === "assistant") noteResponseModel(event.message.responseModel);
-	});
-	pi.on("message_end", event => {
-		if (event.message.role === "assistant") noteResponseModel(event.message.responseModel);
-	});
 	pi.on("model_select", () => {
-		responseModel = undefined;
-		responseModelTransition.reset();
 		syncBorderAnimation();
 		requestRender();
 	});
@@ -423,10 +399,9 @@ export default function (pi: ExtensionAPI) {
 		activeEditor = undefined;
 		embeddedWorkingStatus = undefined;
 		embeddedStatusKind = undefined;
+		announceEmbed(false);
 		stopStatusAnimationTimer();
 		statusTransition.reset();
-		responseModel = undefined;
-		responseModelTransition.reset();
 		activeTui = undefined;
 		activeCtx = undefined;
 	});

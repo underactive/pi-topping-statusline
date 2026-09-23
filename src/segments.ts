@@ -104,20 +104,7 @@ const piSegment: StatusLineSegment = {
 	},
 };
 
-/**
- * The dot joiner and label the model segment appends for a provider-reported
- * response model, styled as the segment draws them. Undefined when there is
- * nothing to add: no report, a report naming the configured model, or model
- * names switched off.
- */
-export function responseModelSuffix(ctx: SegmentContext): { joiner: string; label: string } | undefined {
-	if (!ctx.options.model.showModel || !ctx.responseModel || ctx.responseModel === ctx.model?.id) return undefined;
-	const label = sanitizeStatusText(ctx.responseModel);
-	if (!label) return undefined;
-	return { joiner: theme.fg("statusLineModel", theme.sep.dot), label: theme.fg("statusLineModel", label) };
-}
-
-/** Model · provider · thinking level · response model — related parts joined by the dot, not the group separator. */
+/** Model · provider · thinking level — related parts joined by the dot, not the group separator. */
 const modelSegment: StatusLineSegment = {
 	id: "model",
 	render(ctx) {
@@ -145,9 +132,7 @@ const modelSegment: StatusLineSegment = {
 		}
 
 		if (parts.length === 0) return INVISIBLE;
-		const details = theme.fg("statusLineModel", parts.join(theme.sep.dot));
-		const suffix = responseModelSuffix(ctx);
-		return { content: suffix ? details + suffix.joiner + suffix.label : details, visible: true };
+		return { content: theme.fg("statusLineModel", parts.join(theme.sep.dot)), visible: true };
 	},
 };
 

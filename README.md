@@ -107,7 +107,9 @@ An appearing status slides out from behind the Pi symbol's chevron over 300ms, p
 details right; one that replaces a status still on screen swaps in place without sliding.
 A cleared status is held briefly so handoffs between spinners do not flash the left segments.
 Only the working status cross-fades over 750ms; stable model details remain solid, and the
-message-style spinners cut after the hold.
+message-style spinners cut after the hold. While the bar hosts the working status, it announces
+that on pi's extension event bus, and pi-topping's loader slides its response model out the same
+way; anywhere else that model appears at once.
 
 A status too long for the bar is truncated. The working spinner keeps pi's bare cut, while the
 message-style spinners use an ellipsis. Focusing the embed row in the settings preview shows
@@ -118,7 +120,7 @@ standalone status row.
 
 ## Segments
 
-Ported with pi data: `pi`, `model` (model · provider · thinking level · response model), `path`
+Ported with pi data: `pi`, `model` (model · provider · thinking level), `path`
 (worktree/scratch-dir aware; always strips `~/Projects` and `/work` prefixes — not exposed in
 the settings TUI), `git` (branch + `*unstaged +staged ?untracked`, HEAD
 fs-watch), `pr` (via `gh`, hidden if missing), `session_name`, `token_rate` (live tok/s —
@@ -129,14 +131,8 @@ bottom-right groups), `pi_stats`, `context_graph` (bar + stats), `scroll_hint`, 
 into pi's own footer totals, so cache R/W and cost can increase while idle; this segment matches
 the host footer by construction.
 
-When a provider reports that a different model served a response (a router's resolved model, or a
-fallback), `model` appends it after the configured details. It slides out from behind its `·` over
-300ms, the way an embedded status slides out from behind the Pi chevron, and stays until the next
-response starts.
-
 When the terminal narrows: right segments drop first, then the path shrinks (to ~8 cells),
-then left segments drop end-first — the path is always the last to go. A response model goes
-before any left segment, and right segments drop for it only when that makes it fit.
+then left segments drop end-first — the path is always the last to go.
 
 ## Feeds
 

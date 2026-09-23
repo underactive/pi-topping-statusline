@@ -7,14 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- Show a provider-reported response model (a router's resolved model or a fallback) after the configured model details, sliding it out from behind its dot over 300ms like an embedded status
-
 ### Changed
 
 - Keep configured model, provider, and thinking details visible after embedded status spinners
 - Slide an appearing embedded status out from behind the Pi symbol over 300ms, pushing the model details right, instead of cutting it in
+- Announce on pi's extension event bus whether the bar hosts the working status, so pi-topping slides its loader's response model out only while embedded
 
 ### Fixed
 
