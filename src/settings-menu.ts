@@ -71,48 +71,63 @@ const SEGMENT_ROWS: readonly {
 	{ id: "tokenRateBottomLeft", label: "Token rate", section: "Bottom Left Segment Group" },
 ];
 
-// Feed rows are addressed by index so a rebuild can drop one cleanly.
+// Feed rows carry a stable key (independent of on-screen position) so
+// MenuComponent.rebuild's id-keyed value carry-over survives a removal.
 const FEED_PREFIX = "feed";
-const feedKey = (index: number, part: keyof StatusLineFeed) => `${FEED_PREFIX}.${index}.${part}`;
+const feedKey = (key: number, part: keyof StatusLineFeed) => `${FEED_PREFIX}.${key}.${part}`;
 const ADD_FEED_ID = `${FEED_PREFIX}.add`;
-const removeFeedId = (index: number) => `${FEED_PREFIX}.${index}.remove`;
+const removeFeedId = (key: number) => `${FEED_PREFIX}.${key}.remove`;
 const FEED_ROW_RE = new RegExp(`^${FEED_PREFIX}\\.(\\d+)\\.`);
 
-function feedSection(feeds: readonly StatusLineFeed[]): MenuSection {
+interface FeedPair {
+	key: number;
+	feed: StatusLineFeed;
+}
+
+const pairsFromFeeds = (feeds: readonly StatusLineFeed[]): FeedPair[] => feeds.map((feed, key) => ({ key, feed }));
+
+function feedSection(pairs: readonly FeedPair[]): MenuSection {
 	const items: MenuSection["items"] = [];
-	for (const [index, feed] of feeds.entries()) {
+	pairs.forEach(({ key, feed }, index) => {
 		const n = index + 1;
 		items.push(
-			{ id: feedKey(index, "customType"), label: `${n}. type`, value: feed.customType, text: true, placeholder: "ext/custom-type" },
-			{ id: feedKey(index, "field"), label: `${n}. field`, value: feed.field, text: true, placeholder: "fieldName" },
-			{ id: feedKey(index, "prefix"), label: `${n}. prefix`, value: feed.prefix, text: true, placeholder: "(none)" },
-			{ id: feedKey(index, "format"), label: `${n}. format`, value: feed.format, cycleValues: FEED_FORMATS },
-			{ id: removeFeedId(index), label: `${n}. remove this feed`, value: false, action: true },
+			{ id: feedKey(key, "customType"), label: `${n}. type`, value: feed.customType, text: true, placeholder: "ext/custom-type" },
+			{ id: feedKey(key, "field"), label: `${n}. field`, value: feed.field, text: true, placeholder: "fieldName" },
+			{ id: feedKey(key, "prefix"), label: `${n}. prefix`, value: feed.prefix, text: true, placeholder: "(none)" },
+			{ id: feedKey(key, "format"), label: `${n}. format`, value: feed.format, cycleValues: FEED_FORMATS },
+			{ id: removeFeedId(key), label: `${n}. remove this feed`, value: false, action: true },
 		);
-	}
+	});
 	items.push({ id: ADD_FEED_ID, label: "+ add feed", value: false, action: true });
 	return { title: "Feeds", items };
 }
 
-/** Read the feed rows back out of the menu's flat value map. */
-function feedsFromValues(values: Record<string, MenuValue>): StatusLineFeed[] {
-	const indices = new Set<number>();
-	for (const key of Object.keys(values)) {
-		const match = FEED_ROW_RE.exec(key);
-		if (match) indices.add(Number(match[1]));
+/** Read the feed rows back out of the menu's flat value map, keyed by their stable id. */
+function feedPairsFromValues(values: Record<string, MenuValue>): FeedPair[] {
+	const keys = new Set<number>();
+	for (const id of Object.keys(values)) {
+		const match = FEED_ROW_RE.exec(id);
+		if (match) keys.add(Number(match[1]));
 	}
-	return [...indices]
+	return [...keys]
 		.sort((a, b) => a - b)
-		.map((index): StatusLineFeed => {
-			const rawFormat = String(values[feedKey(index, "format")] ?? "text");
+		.map((key): FeedPair => {
+			const rawFormat = String(values[feedKey(key, "format")] ?? "text");
 			return {
-				customType: String(values[feedKey(index, "customType")] ?? ""),
-				field: String(values[feedKey(index, "field")] ?? ""),
-				prefix: String(values[feedKey(index, "prefix")] ?? ""),
-				format: FEED_FORMATS.includes(rawFormat as FeedFormat) ? (rawFormat as FeedFormat) : "text",
+				key,
+				feed: {
+					customType: String(values[feedKey(key, "customType")] ?? ""),
+					field: String(values[feedKey(key, "field")] ?? ""),
+					prefix: String(values[feedKey(key, "prefix")] ?? ""),
+					format: FEED_FORMATS.includes(rawFormat as FeedFormat) ? (rawFormat as FeedFormat) : "text",
+				},
 			};
 		})
-		.filter(feed => feed.customType.trim() || feed.field.trim() || feed.prefix.trim());
+		.filter(({ feed }) => feed.customType.trim() || feed.field.trim() || feed.prefix.trim());
+}
+
+function feedsFromValues(values: Record<string, MenuValue>): StatusLineFeed[] {
+	return feedPairsFromValues(values).map(({ feed }) => feed);
 }
 
 function buildSections(settings: StatusLineSettings): MenuSection[] {
@@ -171,7 +186,7 @@ function buildSections(settings: StatusLineSettings): MenuSection[] {
 				value: seg[row.id],
 			})),
 		})),
-		feedSection(settings.feeds ? sanitizeFeeds(settings.feeds) : DEFAULT_FEEDS),
+		feedSection(pairsFromFeeds(settings.feeds ? sanitizeFeeds(settings.feeds) : DEFAULT_FEEDS)),
 	];
 }
 
@@ -360,17 +375,20 @@ export function registerSettingsCommand(
 				hints: ["↑↓ move", "←→ cycle", "␣ toggle", "⏎ apply/edit", "esc cancel"],
 				preview: preview.render.bind(preview),
 				onAction: (id, values) => {
-					const feeds = feedsFromValues(values);
+					const pairs = feedPairsFromValues(values);
+					let nextPairs: FeedPair[];
 					if (id === ADD_FEED_ID) {
-						feeds.push({ customType: "", field: "", prefix: "", format: "currency" });
+						const key = Math.max(-1, ...pairs.map(p => p.key)) + 1;
+						nextPairs = [...pairs, { key, feed: { customType: "", field: "", prefix: "", format: "currency" } }];
 					} else {
 						const match = new RegExp(`^${FEED_PREFIX}\\.(\\d+)\\.remove$`).exec(id);
 						if (!match) return undefined;
-						feeds.splice(Number(match[1]), 1);
+						const removedKey = Number(match[1]);
+						nextPairs = pairs.filter(p => p.key !== removedKey);
 					}
-					// Rows are index-addressed, so the whole menu is regenerated to
-					// keep ids contiguous after an insert or removal.
-					return [...buildSections(valuesToSettings(values)).slice(0, -1), feedSection(feeds)];
+					// The whole menu is regenerated so positional labels stay correct
+					// after an insert or removal; row ids are untouched by this.
+					return [...buildSections(valuesToSettings(values)).slice(0, -1), feedSection(nextPairs)];
 				},
 			});
 			if (!result.applied) return;
