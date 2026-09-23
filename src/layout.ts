@@ -4,8 +4,11 @@
  * Overflow strategy (in order): drop right segments right-to-left, truncate
  * the embedded `working` status with the caller's chosen ellipsis policy,
  * shrink the elastic `path` segment down to ~8 cells, drop left segments
- * end-first while protecting `path`. Working indicators retain pi's bare cut;
- * message-style indicators use an ellipsis so truncated prose is apparent.
+ * end-first while protecting `path`. A response model appended to the model
+ * details gives way before any of the left-group steps, and before the right
+ * group when the left group could not fit it even alone. Working indicators
+ * retain pi's bare cut; message-style indicators use an ellipsis so truncated
+ * prose is apparent.
  * The gap between the two groups is filled with the
  * box-horizontal glyph colored like the editor border, so it tracks the
  * thinking-level border color; the callback receives the gap's absolute
@@ -17,11 +20,13 @@
  * working-indicator transition uses without hiding stable model information.
  * `options.workingReveal` (0..1) slides the `working` status out from behind
  * the segment before it, trailing separator first, pushing the segments after
- * it right. Overflow is resolved for the fully revealed status, so no segment
- * appears or drops mid-slide and the last frame matches the settled bar.
+ * it right. `options.responseModelReveal` slides a response model out the
+ * same way from behind the dot that joins it to the configured model details.
+ * Overflow is resolved for fully revealed content, so no segment appears or
+ * drops mid-slide and the last frame matches the settled bar.
  */
 import { sliceByColumn, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { renderSegment } from "./segments.js";
+import { renderSegment, responseModelSuffix } from "./segments.js";
 import { getSeparator } from "./separators.js";
 import { theme } from "./theme.js";
 import type { EffectiveStatusLineSettings, SegmentContext, StatusLineSegmentId } from "./types.js";
@@ -69,7 +74,7 @@ export function buildStatusLine(
 	gapBorderColor: (str: string, startCol: number, row: number) => string,
 	segmentGroups: { left: StatusLineSegmentId[]; right: StatusLineSegmentId[] },
 	barOrigin: { col: number; row: number } = { col: 0, row: 0 },
-	options: { leftFade?: number; workingReveal?: number; workingEllipsis?: string } = {},
+	options: { leftFade?: number; workingReveal?: number; responseModelReveal?: number; workingEllipsis?: string } = {},
 ): string {
 	const separatorDef = getSeparator(settings.separator);
 
@@ -121,7 +126,18 @@ export function buildStatusLine(
 	let rightWidth = rightGroupWidth(right);
 	const totalWidth = () => leftWidth + rightWidth + (left.length > 0 || right.length > 0 ? 1 : 0);
 
+	let responseSuffix = leftSegIds.includes("model") ? responseModelSuffix(ctx) : undefined;
+	const modelDetails = (): string => renderSegment("model", { ...ctx, responseModel: undefined }).content;
+
 	if (width > 0) {
+		// A response model is supplementary to the configured model details, so it
+		// gives way before any left segment is truncated, shrunk, or dropped. The
+		// right group still yields to it, but only when that makes it fit.
+		if (responseSuffix && leftWidth + 1 > width) {
+			left[leftSegIds.indexOf("model")] = modelDetails();
+			responseSuffix = undefined;
+			leftWidth = leftGroupWidth(left);
+		}
 		while (totalWidth() > width && right.length > 0) {
 			right.pop();
 			rightWidth = rightGroupWidth(right);
@@ -174,27 +190,46 @@ export function buildStatusLine(
 		}
 	}
 
-	const reveal = options.workingReveal;
-	const slideIdx = leftSegIds.indexOf("working");
-	if (reveal !== undefined && reveal < 1 && slideIdx >= 0) {
-		// Only the status's tail has emerged. Ahead of another segment, the tail
-		// includes the separator between them and is joined onto that segment,
-		// which then moves right one cell per revealed cell.
-		const pushes = slideIdx < left.length - 1;
-		const unit = pushes ? left[slideIdx] + leftSepText : left[slideIdx];
-		const unitWidth = visibleWidth(unit);
-		const shown = Math.round(unitWidth * reveal);
-		if (shown <= 0) {
-			left.splice(slideIdx, 1);
-			leftSegIds.splice(slideIdx, 1);
-		} else if (pushes) {
-			left.splice(slideIdx, 2, sliceByColumn(unit, unitWidth - shown, shown) + left[slideIdx + 1]);
-			leftSegIds.splice(slideIdx, 1);
+	/**
+	 * Slide `unit` out of left part `idx` tail first, drawn after `lead` in the
+	 * same part or as the whole part. Ahead of another part, the unit carries the
+	 * separator to it and is joined onto that part, which then moves right one
+	 * cell per revealed cell. A lead's joiner appears with the first cell.
+	 */
+	const slideOut = (idx: number, unit: string, reveal: number, lead?: { text: string; joiner: string }): void => {
+		const pushes = idx < left.length - 1;
+		const moving = pushes ? unit + leftSepText : unit;
+		const movingWidth = visibleWidth(moving);
+		const shown = Math.round(movingWidth * reveal);
+		if (shown > 0) {
+			const part = (lead ? lead.text + lead.joiner : "") + sliceByColumn(moving, movingWidth - shown, shown);
+			if (pushes) {
+				left.splice(idx, 2, part + left[idx + 1]);
+				leftSegIds.splice(idx + 1, 1);
+			} else {
+				left[idx] = part;
+			}
+		} else if (lead) {
+			left[idx] = lead.text;
 		} else {
-			left[slideIdx] = sliceByColumn(unit, unitWidth - shown, shown);
+			left.splice(idx, 1);
+			leftSegIds.splice(idx, 1);
 		}
 		leftWidth = leftGroupWidth(left);
+	};
+
+	// The response model's dot stays put like the chevron a working status
+	// slides out from behind. It resolves first, while `model` still names its
+	// own part.
+	const modelReveal = options.responseModelReveal;
+	const modelIdx = leftSegIds.indexOf("model");
+	if (responseSuffix && modelReveal !== undefined && modelReveal < 1 && modelIdx >= 0) {
+		slideOut(modelIdx, responseSuffix.label, modelReveal, { text: modelDetails(), joiner: responseSuffix.joiner });
 	}
+
+	const reveal = options.workingReveal;
+	const slideIdx = leftSegIds.indexOf("working");
+	if (reveal !== undefined && reveal < 1 && slideIdx >= 0) slideOut(slideIdx, left[slideIdx], reveal);
 
 	const renderGroup = (parts: string[], direction: "left" | "right"): string => {
 		if (parts.length === 0) return "";

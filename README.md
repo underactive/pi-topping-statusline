@@ -118,7 +118,7 @@ standalone status row.
 
 ## Segments
 
-Ported with pi data: `pi`, `model` (model · provider · thinking level), `path`
+Ported with pi data: `pi`, `model` (model · provider · thinking level · response model), `path`
 (worktree/scratch-dir aware; always strips `~/Projects` and `/work` prefixes — not exposed in
 the settings TUI), `git` (branch + `*unstaged +staged ?untracked`, HEAD
 fs-watch), `pr` (via `gh`, hidden if missing), `session_name`, `token_rate` (live tok/s —
@@ -129,8 +129,14 @@ bottom-right groups), `pi_stats`, `context_graph` (bar + stats), `scroll_hint`, 
 into pi's own footer totals, so cache R/W and cost can increase while idle; this segment matches
 the host footer by construction.
 
+When a provider reports that a different model served a response (a router's resolved model, or a
+fallback), `model` appends it after the configured details. It slides out from behind its `·` over
+300ms, the way an embedded status slides out from behind the Pi chevron, and stays until the next
+response starts.
+
 When the terminal narrows: right segments drop first, then the path shrinks (to ~8 cells),
-then left segments drop end-first — the path is always the last to go.
+then left segments drop end-first — the path is always the last to go. A response model goes
+before any left segment, and right segments drop for it only when that makes it fit.
 
 ## Feeds
 

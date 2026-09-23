@@ -421,6 +421,7 @@ export class SegmentContextBuilder {
 		options: StatusLineSegmentOptions,
 		include: SegmentIncludes,
 		scrollHint: string | undefined,
+		responseModel?: string,
 	): SegmentContext {
 		const ctx = this.#ctx;
 		const now = Date.now();
@@ -460,6 +461,7 @@ export class SegmentContextBuilder {
 		return {
 			options,
 			model,
+			responseModel,
 			thinkingLevel: this.#pi.getThinkingLevel(),
 			cwd: ctx?.cwd ?? process.cwd(),
 			sessionName: ctx?.sessionManager?.getSessionName(),

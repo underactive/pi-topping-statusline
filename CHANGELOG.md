@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Show a provider-reported response model (a router's resolved model or a fallback) after the configured model details, sliding it out from behind its dot over 300ms like an embedded status
+
 ### Changed
 
 - Keep configured model, provider, and thinking details visible after embedded status spinners

@@ -123,3 +123,48 @@ export class StatusTransition {
 		this.#slideFrom = undefined;
 	}
 }
+
+/** How far content has slid out this frame. */
+export interface RevealFrame {
+	/** Slide-out progress (0..1); absent once the content is fully out. */
+	reveal?: number;
+	/** True while the slide still needs repaints. */
+	pending: boolean;
+}
+
+/**
+ * Slide content out over STATUS_SLIDE_MS each time it goes from absent to
+ * present, as a status does. Content that changes while shown stays put.
+ */
+export class AppearanceTransition {
+	#shown = false;
+	#slideFrom: number | undefined;
+
+	resolve(visible: boolean, now: number): RevealFrame {
+		if (!visible) {
+			this.reset();
+			return { pending: false };
+		}
+		if (!this.#shown) {
+			this.#shown = true;
+			this.#slideFrom = now;
+		}
+		if (this.#slideFrom === undefined) return { pending: false };
+		const progress = (now - this.#slideFrom) / STATUS_SLIDE_MS;
+		if (progress >= 1) {
+			this.#slideFrom = undefined;
+			return { pending: false };
+		}
+		return { reveal: easeFade(progress), pending: true };
+	}
+
+	pending(now: number): boolean {
+		return this.#slideFrom !== undefined && now < this.#slideFrom + STATUS_SLIDE_MS;
+	}
+
+	/** Forget the shown content so its next appearance slides out again. */
+	reset(): void {
+		this.#shown = false;
+		this.#slideFrom = undefined;
+	}
+}
