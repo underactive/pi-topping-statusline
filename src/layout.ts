@@ -23,6 +23,7 @@
 import { sliceByColumn, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { renderSegment } from "./segments.js";
 import { getSeparator } from "./separators.js";
+import { STATUS_STABLE_SEGMENTS } from "./settings.js";
 import { theme } from "./theme.js";
 import type { EffectiveStatusLineSettings, SegmentContext, StatusLineSegmentId } from "./types.js";
 
@@ -178,7 +179,7 @@ export function buildStatusLine(
 	const fade = options.leftFade;
 	if (fade !== undefined && fade < 1) {
 		for (const [i, id] of leftSegIds.entries()) {
-			if (id === "pi" || id === "model") continue;
+			if (STATUS_STABLE_SEGMENTS.has(id)) continue;
 			// Reset first so plain text is recolored too, not just segments that
 			// set their own foreground color.
 			left[i] = theme.fadeAnsi(`\x1b[39m${left[i]}`, fade);

@@ -171,6 +171,9 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 	};
 }
 
+/** Segments that remain visible, unfaded, while a pi status spinner is embedded. */
+export const STATUS_STABLE_SEGMENTS: ReadonlySet<StatusLineSegmentId> = new Set(["pi", "model"]);
+
 /**
  * The top-left group for one frame. While a pi status spinner is embedded, it
  * stands in for the path and repository segments but keeps the leading Pi
@@ -178,10 +181,8 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
  */
 export function topLeftSegments(effective: EffectiveStatusLineSettings, working: boolean): StatusLineSegmentId[] {
 	if (!working) return effective.leftSegments;
-	const segments: StatusLineSegmentId[] = [];
-	if (effective.leftSegments.includes("pi")) segments.push("pi");
-	segments.push("working");
-	if (effective.leftSegments.includes("model")) segments.push("model");
+	const segments = effective.leftSegments.filter((id) => STATUS_STABLE_SEGMENTS.has(id));
+	segments.splice(segments.indexOf("pi") + 1, 0, "working");
 	return segments;
 }
 
