@@ -599,7 +599,8 @@ export class MenuComponent implements Component {
 		const value = this.values[item.id]!;
 		const marker = selected ? ">" : " ";
 		const markerColored = selected ? th.fg("accent", marker) : marker;
-		const rowBackground = (content: string) => (selected ? th.bg("selectedBg", content) : content);
+		const rowBackground = (content: string) =>
+			selected ? th.bg("selectedBg", content.replaceAll("\x1b[0m", `\x1b[0m${th.getBgAnsi("selectedBg")}`)) : content;
 
 		if (item.action) {
 			const label = truncateToWidth(item.label, Math.max(0, innerWidth - 5));

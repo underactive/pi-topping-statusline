@@ -8,6 +8,7 @@ const theme = {
 	fg: (_c: string, s: string) => s,
 	bg: (color: string, s: string) => color === "selectedBg" ? `\x1b[48;5;1m${s}\x1b[49m` : s,
 	bold: (s: string) => s,
+	getBgAnsi: (color: string) => color === "selectedBg" ? "\x1b[48;5;1m" : "",
 } as unknown as Theme;
 const plain = (lines: string[]) => lines.map(l => l.replace(/\x1b\[[0-9;]*m/g, ""));
 
@@ -58,6 +59,20 @@ test("selected rows use the pi-topping marker and background", () => {
 	assert.match(plainText, /> 1\. type/);
 	assert.ok(!plainText.includes("▸"));
 	assert.ok(lines.some(line => line.includes("\x1b[48;5;1m")), "selected row background is missing");
+});
+
+test("selected row background survives an embedded reset from truncated content", () => {
+	const { menu } = drive();
+	// Width narrow enough that the "1. type" label truncates, which embeds a raw \x1b[0m reset.
+	const lines = menu.render(15);
+	const selectedLine = lines.find(line => line.includes("\x1b[48;5;1m"))!;
+	assert.ok(selectedLine, "selected row not found");
+	assert.ok(selectedLine.includes("\x1b[0m"), "expected a reset from truncateToWidth in the selected row");
+	assert.doesNotMatch(
+		selectedLine,
+		/\x1b\[0m(?!\x1b\[48;5;1m)/,
+		"selected background must be reopened after every reset",
+	);
 });
 
 test("typing into a text row edits only on commit", () => {
