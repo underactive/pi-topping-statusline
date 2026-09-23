@@ -78,6 +78,7 @@ const feedKey = (key: number, part: keyof StatusLineFeed) => `${FEED_PREFIX}.${k
 const ADD_FEED_ID = `${FEED_PREFIX}.add`;
 const removeFeedId = (key: number) => `${FEED_PREFIX}.${key}.remove`;
 const FEED_ROW_RE = new RegExp(`^${FEED_PREFIX}\\.(\\d+)\\.`);
+const REMOVE_FEED_RE = new RegExp(`^${FEED_PREFIX}\\.(\\d+)\\.remove$`);
 
 interface FeedPair {
 	key: number;
@@ -381,7 +382,7 @@ export function registerSettingsCommand(
 						const key = Math.max(-1, ...pairs.map(p => p.key)) + 1;
 						nextPairs = [...pairs, { key, feed: { customType: "", field: "", prefix: "", format: "currency" } }];
 					} else {
-						const match = new RegExp(`^${FEED_PREFIX}\\.(\\d+)\\.remove$`).exec(id);
+						const match = REMOVE_FEED_RE.exec(id);
 						if (!match) return undefined;
 						const removedKey = Number(match[1]);
 						nextPairs = pairs.filter(p => p.key !== removedKey);
