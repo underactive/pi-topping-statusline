@@ -1,4 +1,4 @@
-/** Ported verbatim from oh-my-pi status-line/context-thresholds.ts. */
+/** Ported from oh-my-pi status-line/context-thresholds.ts; formatContextUsage adds the `~` estimate marker. */
 import type { StatusColor } from "./theme.js";
 import { formatNumber } from "./utils.js";
 
