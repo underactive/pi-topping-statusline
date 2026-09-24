@@ -17,10 +17,10 @@ const cellColor = (percent: number, contextWindow: number): string =>
 export function renderContextGraph(
 	percent: number,
 	contextWindow: number,
-	opts: { usedTokens?: number; labelColor?: string; showBar?: boolean; showStats?: boolean; estimated?: boolean } = {},
+	opts: { usedTokens: number; labelColor: string; showBar: boolean; showStats: boolean; estimated: boolean },
 ): string {
 	const parts: string[] = [];
-	if (opts.showBar !== false) {
+	if (opts.showBar) {
 		const filled = Math.min(CELLS, Math.max(0, Math.round((percent * CELLS) / 100)));
 		let bar = "";
 		let prevColor = "";
@@ -38,11 +38,11 @@ export function renderContextGraph(
 		bar += "\x1b[39m";
 		parts.push(bar);
 	}
-	if (opts.showStats !== false) {
+	if (opts.showStats) {
 		// Label wears pi's own footer-stats color so it reads as part of that run;
 		// the threshold gradient still lives in the cells.
-		const text = formatContextUsage(percent, contextWindow, opts.usedTokens, opts.estimated === true);
-		parts.push(opts.labelColor ? `${opts.labelColor}${text}\x1b[39m` : theme.fg("muted", text));
+		const text = formatContextUsage(percent, contextWindow, opts.usedTokens, opts.estimated);
+		parts.push(`${opts.labelColor}${text}\x1b[39m`);
 	}
 	return parts.join(" ");
 }
