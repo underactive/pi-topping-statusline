@@ -100,10 +100,7 @@ export default function (pi: ExtensionAPI) {
 	const requestRender = () => activeTui?.requestRender();
 	builder.setRequestRender(requestRender);
 
-	// pi-topping-compact's live compaction progress, while it broadcasts one. The
-	// bottom-right group hosts it in place of pi's stats and the context graph.
-	// pi-topping-compact broadcasts only while this bar announces that it hosts the
-	// progress, and shows its own above-editor widget otherwise.
+	// pi-topping-compact's latest progress broadcast, while one is active.
 	let compaction: CompactionProgressView | undefined;
 	// The boxed render failed and the plain editor is showing instead.
 	let boxRenderFailed = false;
