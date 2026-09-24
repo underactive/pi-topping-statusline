@@ -120,7 +120,7 @@ export function buildStatusLine(
 	const groupWidth = (parts: string[], sepWidth: number): number => {
 		if (parts.length === 0) return 0;
 		const partsWidth = parts.reduce((sum, part) => sum + visibleWidth(part), 0);
-		const sepTotal = Math.max(0, parts.length - 1) * (sepWidth + 2);
+		const sepTotal = (parts.length - 1) * (sepWidth + 2);
 		return partsWidth + sepTotal + 2 + capWidth;
 	};
 
@@ -249,7 +249,5 @@ export function buildStatusLine(
 		barOrigin.col + leftWidth,
 		barOrigin.row,
 	);
-	if (!leftGroup) return gapFill + rightGroup;
-	if (!rightGroup) return leftGroup + gapFill;
 	return leftGroup + gapFill + rightGroup;
 }
