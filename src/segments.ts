@@ -396,7 +396,7 @@ const compactionGraphSegment: StatusLineSegment = {
 		const { showBar, showStats } = ctx.options.context;
 		const parts: string[] = [];
 		if (showBar) parts.push(view.bar);
-		if (showStats) parts.push(`${theme.getFgAnsi("dim")}${formatCompactionTokens(view)}\x1b[39m`);
+		if (showStats) parts.push(theme.fg("dim", formatCompactionTokens(view)));
 		if (parts.length === 0) return INVISIBLE;
 		return { content: parts.join(" "), visible: true };
 	},
