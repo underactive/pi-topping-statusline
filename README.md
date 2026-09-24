@@ -125,7 +125,8 @@ the box's bottom border while a compaction runs. Its phosphor bar stands in for 
 graph, followed by the tokens being compacted over the window and as a share of it
 (`86K/131K (66%)`), and `57% summarized · 16.3s` — how much has been summarized so far, and the
 time taken — stands in for pi's stats. The bar and its label follow the Context bar and Context
-stats toggles. The moment the compaction ends, pi's stats and the context graph return, and
+stats toggles. The moment the compaction ends, pi's stats and the context graph return, the
+graph sizing the compacted context as an estimate until the next response (see Segments), and
 pi-topping-compact shows its completion result above the editor as it always has. Nothing
 changes without pi-topping-compact installed: the two talk over pi's extension event bus, this
 bar announcing whether it hosts the progress and pi-topping-compact broadcasting it only while
@@ -147,6 +148,12 @@ bottom-right groups), `pi_stats`, `context_graph` (bar + stats), `scroll_hint`, 
 includes cache-warming refreshes folded
 into pi's own footer totals, so cache R/W and cost can increase while idle; this segment matches
 the host footer by construction.
+
+Between a compaction and the next response, pi reports context usage as unknown. Rather than
+vanish for that stretch, `context_graph` shows pi's own estimate of the compacted context, the
+summary plus the kept messages sized by pi's estimator, marked with `~` (`~9.2%/131K`). It is
+the same figure pi-topping-compact reports in its result. pi's measured figure replaces it after
+the next response.
 
 When the terminal narrows: right segments drop first, then the path shrinks (to ~8 cells),
 then left segments drop end-first — the path is always the last to go.

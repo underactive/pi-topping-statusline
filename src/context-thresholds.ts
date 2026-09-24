@@ -62,11 +62,15 @@ export function formatContextUsage(
 	contextPercent: number | null | undefined,
 	contextWindow: number,
 	usedTokens?: number,
+	estimated = false,
 ): string {
+	// An estimate wears "~" so it reads as one until pi's own figure arrives.
+	const about = estimated ? "~" : "";
 	if (!Number.isFinite(contextWindow) || contextWindow <= 0) {
-		return `${formatNumber(usedTokens ?? 0)}/?`;
+		return `${about}${formatNumber(usedTokens ?? 0)}/?`;
 	}
-	const pct = contextPercent === null || contextPercent === undefined ? "?" : `${contextPercent.toFixed(1)}%`;
+	const pct =
+		contextPercent === null || contextPercent === undefined ? "?" : `${about}${contextPercent.toFixed(1)}%`;
 	return `${pct}/${formatNumber(contextWindow)}`;
 }
 

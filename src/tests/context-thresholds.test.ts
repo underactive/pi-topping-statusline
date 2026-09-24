@@ -48,3 +48,9 @@ test("a null or undefined percent against a known window renders '?'", () => {
 test("a known percent renders with one decimal", () => {
 	assert.equal(formatContextUsage(42.567, 200_000), "42.6%/200K");
 });
+
+test("an estimate wears ~ wherever it shows a figure", () => {
+	assert.equal(formatContextUsage(9.2, 131_072, 12_000, true), "~9.2%/131K");
+	assert.equal(formatContextUsage(9.2, 0, 12_000, true), "~12K/?");
+	assert.equal(formatContextUsage(null, 131_072, 0, true), "?/131K", "nothing to mark");
+});

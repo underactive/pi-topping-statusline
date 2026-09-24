@@ -8,7 +8,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import {
+	buildSessionContext,
+	estimateTokens,
+	type ExtensionAPI,
+	type ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { FADE_SHADE_COUNT } from "./theme.js";
 import type { FeedDisplayState, SegmentContext, SegmentIncludes, StatusLineSegmentOptions, TokenRateDisplay } from "./types.js";
 import { feedKey } from "./utils.js";
@@ -55,16 +60,32 @@ export function getFeedDisplayState(changedAt: number, now: number): FeedDisplay
 	};
 }
 
-function deriveContextUsage(ctx: ExtensionContext | undefined): {
+interface ContextUsageFigures {
 	contextWindow: number;
 	tokens: number | undefined;
 	percent: number | null;
-} {
-	const usage = ctx?.getContextUsage();
-	const contextWindow = usage?.contextWindow ?? ctx?.model?.contextWindow ?? 0;
-	const tokens = usage?.tokens ?? undefined;
-	const percent = usage ? usage.percent : null;
-	return { contextWindow, tokens, percent };
+	/** The figures are pi's estimate of a freshly compacted context, not a measurement. */
+	estimated: boolean;
+}
+
+/** One post-compaction estimate, keyed by session and leaf so it is rebuilt only when the branch grows. */
+interface ContextEstimate {
+	key: string;
+	tokens: number;
+}
+
+/**
+ * pi's own estimate of the context after a compaction: the summary plus the
+ * kept and later messages, sized by its per-message estimator. This is the
+ * figure pi hands compaction callers as estimatedTokensAfter, so it agrees with
+ * what pi-topping-compact reports in its result.
+ */
+export function estimateCompactedContextTokens(sessionManager: ExtensionContext["sessionManager"]): number {
+	let tokens = 0;
+	for (const message of buildSessionContext(sessionManager.getBranch(), sessionManager.getLeafId()).messages) {
+		tokens += estimateTokens(message);
+	}
+	return tokens;
 }
 
 function parseGitStatus(porcelain: string): GitStatusCounts {
@@ -119,6 +140,8 @@ export class SegmentContextBuilder {
 	#feedTimer: ReturnType<typeof setTimeout> | undefined;
 	#feedTimerAt: number | undefined;
 
+	#contextEstimate: ContextEstimate | undefined;
+
 	constructor(pi: ExtensionAPI) {
 		this.#pi = pi;
 	}
@@ -146,6 +169,7 @@ export class SegmentContextBuilder {
 		this.#feedsScannedAt = 0;
 		this.#feedsScannedRef = undefined;
 		this.#clearFeedLifecycle();
+		this.#contextEstimate = undefined;
 		if (this.#repoCwd !== ctx.cwd) {
 			this.#resetGitState();
 			this.#repoCwd = ctx.cwd;
@@ -414,6 +438,39 @@ export class SegmentContextBuilder {
 		}
 	}
 
+	// ── context usage ────────────────────────────────────────────────────────
+
+	/**
+	 * pi reports usage as unknown between a compaction and the next assistant
+	 * response. Rather than let the graph vanish for that stretch, this fills it
+	 * with pi's own estimate of the compacted context, flagged as such, until
+	 * pi's measured figure arrives.
+	 */
+	#deriveContextUsage(ctx: ExtensionContext | undefined): ContextUsageFigures {
+		const usage = ctx?.getContextUsage();
+		const contextWindow = usage?.contextWindow ?? ctx?.model?.contextWindow ?? 0;
+		if (!ctx || !usage || usage.tokens !== null || contextWindow <= 0) {
+			return { contextWindow, tokens: usage?.tokens ?? undefined, percent: usage ? usage.percent : null, estimated: false };
+		}
+		const tokens = this.#estimateContextTokens(ctx);
+		if (tokens === undefined) return { contextWindow, tokens: undefined, percent: null, estimated: false };
+		return { contextWindow, tokens, percent: (tokens / contextWindow) * 100, estimated: true };
+	}
+
+	#estimateContextTokens(ctx: ExtensionContext): number | undefined {
+		const sessionManager = ctx.sessionManager;
+		try {
+			const key = `${sessionManager.getSessionId()}\0${sessionManager.getLeafId() ?? ""}`;
+			if (this.#contextEstimate?.key !== key) {
+				this.#contextEstimate = { key, tokens: estimateCompactedContextTokens(sessionManager) };
+			}
+			return this.#contextEstimate.tokens;
+		} catch {
+			// The session plumbing is pi's; a surprise there costs the estimate, not the frame.
+			return undefined;
+		}
+	}
+
 	// ── snapshot ─────────────────────────────────────────────────────────────
 
 	build(
@@ -455,7 +512,7 @@ export class SegmentContextBuilder {
 				}
 			: undefined;
 
-		const { contextWindow, tokens, percent: contextPercent } = deriveContextUsage(ctx);
+		const { contextWindow, tokens, percent: contextPercent, estimated } = this.#deriveContextUsage(ctx);
 
 		return {
 			options,
@@ -466,6 +523,7 @@ export class SegmentContextBuilder {
 			contextPercent,
 			contextTokens: tokens ?? 0,
 			contextWindow,
+			contextEstimated: estimated,
 			git: {
 				branch: include.git || include.pr ? this.#branch : null,
 				status: include.git ? this.#gitStatus : null,

@@ -346,6 +346,7 @@ const contextGraphSegment: StatusLineSegment = {
 				labelColor: theme.getFgAnsi("dim"),
 				showBar,
 				showStats,
+				estimated: ctx.contextEstimated === true,
 			}),
 			visible: true,
 		};

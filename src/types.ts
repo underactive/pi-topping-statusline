@@ -133,10 +133,15 @@ export interface SegmentContext {
 	thinkingLevel: string;
 	cwd: string;
 	sessionName: string | undefined;
-	/** Context usage percent, or null when unknown (e.g. right after compaction). */
+	/** Context usage percent, or null when unknown (no model, or a session pi cannot size). */
 	contextPercent: number | null;
 	contextTokens: number;
 	contextWindow: number;
+	/**
+	 * True while contextPercent and contextTokens are pi's estimate of a freshly
+	 * compacted context, shown until pi measures the next response.
+	 */
+	contextEstimated?: boolean;
 	git: {
 		branch: string | null;
 		status: { staged: number; unstaged: number; untracked: number } | null;
