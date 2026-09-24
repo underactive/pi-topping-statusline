@@ -62,7 +62,7 @@ export function getFeedDisplayState(changedAt: number, now: number): FeedDisplay
 
 interface ContextUsageFigures {
 	contextWindow: number;
-	tokens: number | undefined;
+	tokens: number;
 	percent: number | null;
 	/** The figures are pi's estimate of a freshly compacted context, not a measurement. */
 	estimated: boolean;
@@ -450,10 +450,10 @@ export class SegmentContextBuilder {
 		const usage = ctx?.getContextUsage();
 		const contextWindow = usage?.contextWindow ?? ctx?.model?.contextWindow ?? 0;
 		if (!ctx || !usage || usage.tokens !== null || contextWindow <= 0) {
-			return { contextWindow, tokens: usage?.tokens ?? undefined, percent: usage ? usage.percent : null, estimated: false };
+			return { contextWindow, tokens: usage?.tokens ?? 0, percent: usage ? usage.percent : null, estimated: false };
 		}
 		const tokens = this.#estimateContextTokens(ctx);
-		if (tokens === undefined) return { contextWindow, tokens: undefined, percent: null, estimated: false };
+		if (tokens === undefined) return { contextWindow, tokens: 0, percent: null, estimated: false };
 		return { contextWindow, tokens, percent: (tokens / contextWindow) * 100, estimated: true };
 	}
 
@@ -522,7 +522,7 @@ export class SegmentContextBuilder {
 			cwd: ctx?.cwd ?? process.cwd(),
 			sessionName: ctx?.sessionManager?.getSessionName(),
 			contextPercent,
-			contextTokens: tokens ?? 0,
+			contextTokens: tokens,
 			contextWindow,
 			contextEstimated: estimated,
 			git: {
