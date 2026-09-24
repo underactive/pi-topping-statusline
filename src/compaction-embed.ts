@@ -9,6 +9,7 @@
  * result still appears above the editor, in pi-topping-compact's own widget.
  */
 import { COMPACTION_STAND_INS } from "./settings.js";
+import { hexToFgAnsi } from "./theme.js";
 import type { CompactionProgressView, EffectiveStatusLineSettings } from "./types.js";
 
 /** Announced as `{ embedded: boolean }`. Shared with pi-topping-compact. */
@@ -42,3 +43,20 @@ export function hostsCompactionProgress(effective: EffectiveStatusLineSettings):
 		effective.bottomRightSegments.some((id) => COMPACTION_STAND_INS[id] !== undefined)
 	);
 }
+
+/** pi-topping-compact's phosphor bar as it looks with a third of the context left to compact. */
+const FIT_PROBE_BAR = `${hexToFgAnsi("#72f1b8")}${"\u258b".repeat(7)}\x1b[39m\x1b[2m${hexToFgAnsi("#266446")}${"\u2591".repeat(13)}\x1b[22m\x1b[39m`;
+
+/**
+ * A representative hosted compaction (66% usage, 35% still to go, so 47% summarized), used to
+ * measure whether the stand-in segments have room before any real progress has broadcast, and
+ * shown in the settings preview. Real figures vary in digit count, but this stands in for a
+ * typical session without committing to a worst case that would starve the rest of the bar.
+ */
+export const COMPACTION_FIT_PROBE: CompactionProgressView = {
+	bar: FIT_PROBE_BAR,
+	percent: 47,
+	tokensBefore: 86_000,
+	contextWindow: 131_072,
+	elapsedMs: 16_300,
+};

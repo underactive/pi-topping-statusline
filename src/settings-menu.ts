@@ -5,6 +5,7 @@
  */
 import type { ExtensionAPI, ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
 import { makeBoxPainters, renderBoxRow } from "./box.js";
+import { COMPACTION_FIT_PROBE } from "./compaction-embed.js";
 import type { SegmentContextBuilder } from "./context.js";
 import { buildStatusLine } from "./layout.js";
 import { showMenu, type MenuSection, type MenuValue, type PreviewResult } from "./menu.js";
@@ -24,9 +25,8 @@ import {
 	topLeftSegments,
 	type SettingsState,
 } from "./settings.js";
-import { hexToFgAnsi, theme, type BorderStyle, type SymbolPreset } from "./theme.js";
+import { theme, type BorderStyle, type SymbolPreset } from "./theme.js";
 import type {
-	CompactionProgressView,
 	FeedFormat,
 	SegmentContext,
 	SegmentIncludes,
@@ -234,16 +234,6 @@ const CANNED_WINDOW = 200_000;
 const CANNED_WORKING = "⠙ Mulling ⢾⣿⣿⣿⣿⣿⢾⢾  28 tps · 11s · ↓ 316 tokens";
 /** pi 0.86's compaction spinner: the longest status the bar has to carry. */
 const CANNED_COMPACTION = "⠙ Context overflow detected, Auto-compacting... (esc to cancel)";
-/** pi-topping-compact's phosphor bar as it looks with a third of the context left to compact. */
-const CANNED_COMPACTION_BAR = `${hexToFgAnsi("#72f1b8")}${"\u258b".repeat(7)}\x1b[39m\x1b[2m${hexToFgAnsi("#266446")}${"\u2591".repeat(13)}\x1b[22m\x1b[39m`;
-/** A hosted compaction mid-summary: 66% usage, 35% still to go, so 47% summarized. */
-const CANNED_COMPACTION_PROGRESS: CompactionProgressView = {
-	bar: CANNED_COMPACTION_BAR,
-	percent: 47,
-	tokensBefore: 86_000,
-	contextWindow: 131_072,
-	elapsedMs: 16_300,
-};
 
 /** Fill any feed the live session has no entry for, so the preview stays legible. */
 function cannedFeedData(
@@ -351,7 +341,7 @@ class StatusLinePreview {
 			const progressDemo = activeItemId === "embedCompactionProgress" && effective.embedCompactionProgress;
 			const bottom = buildStatusLine(
 				barWidth,
-				progressDemo ? { ...ctx, compaction: CANNED_COMPACTION_PROGRESS } : ctx,
+				progressDemo ? { ...ctx, compaction: COMPACTION_FIT_PROBE } : ctx,
 				effective,
 				painters.gapColor,
 				{

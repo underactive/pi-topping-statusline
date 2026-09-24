@@ -160,3 +160,25 @@ test("the bottom bar swaps pi's stats and the context graph for the compaction w
 	assert.ok(!plain.includes("41.0%"), "the context label is gone");
 	assert.ok(bar.includes(BAR), "the bar's own colors survive the layout");
 });
+
+test("onFit reports which segments actually survived overflow trimming, not just what was requested", () => {
+	const groups = { left: [], right: bottomRightSegments(EFFECTIVE, true) };
+	let wide: { left: readonly string[]; right: readonly string[] } | undefined;
+	buildStatusLine(100, ctxWith(VIEW), EFFECTIVE, noGap, groups, undefined, {
+		onFit: fit => {
+			wide = fit;
+		},
+	});
+	assert.deepEqual(wide?.right, ["compaction_info", "compaction_graph"], "both stand-ins fit at full width");
+
+	let narrow: { left: readonly string[]; right: readonly string[] } | undefined;
+	buildStatusLine(20, ctxWith(VIEW), EFFECTIVE, noGap, groups, undefined, {
+		onFit: fit => {
+			narrow = fit;
+		},
+	});
+	assert.ok(
+		!narrow?.right.includes("compaction_info") && !narrow?.right.includes("compaction_graph"),
+		"too narrow for either stand-in, so a caller checking onFit knows not to claim it hosts the progress",
+	);
+});

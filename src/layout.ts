@@ -70,7 +70,13 @@ export function buildStatusLine(
 	gapBorderColor: (str: string, startCol: number, row: number) => string,
 	segmentGroups: { left: StatusLineSegmentId[]; right: StatusLineSegmentId[] },
 	barOrigin: { col: number; row: number } = { col: 0, row: 0 },
-	options: { leftFade?: number; workingReveal?: number; workingEllipsis?: string } = {},
+	options: {
+		leftFade?: number;
+		workingReveal?: number;
+		workingEllipsis?: string;
+		/** Called once overflow trimming settles, with the segment ids that actually made it into each rendered group. */
+		onFit?: (fit: { left: readonly StatusLineSegmentId[]; right: readonly StatusLineSegmentId[] }) => void;
+	} = {},
 ): string {
 	const separatorDef = getSeparator(settings.separator);
 
@@ -92,10 +98,12 @@ export function buildStatusLine(
 	}
 
 	const right: string[] = [];
+	const rightSegIds: StatusLineSegmentId[] = [];
 	for (const segId of segmentGroups.right) {
 		const rendered = renderSegment(segId, ctx);
 		if (rendered.visible && rendered.content) {
 			right.push(rendered.content);
+			rightSegIds.push(segId);
 		}
 	}
 
@@ -125,6 +133,7 @@ export function buildStatusLine(
 	if (width > 0) {
 		while (totalWidth() > width && right.length > 0) {
 			right.pop();
+			rightSegIds.pop();
 			rightWidth = rightGroupWidth(right);
 		}
 		// The working status absorbs overflow first so the Pi symbol beside it
@@ -175,6 +184,10 @@ export function buildStatusLine(
 			leftWidth = leftGroupWidth(left);
 		}
 	}
+
+	// Trimming above only drops or truncates segments, never adds them back, so
+	// the surviving ids are settled here regardless of width.
+	options.onFit?.({ left: leftSegIds, right: rightSegIds });
 
 	const fade = options.leftFade;
 	if (fade !== undefined && fade < 1) {

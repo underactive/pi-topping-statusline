@@ -130,9 +130,10 @@ graph sizing the compacted context as an estimate until the next response (see S
 pi-topping-compact shows its completion result above the editor as it always has. Nothing
 changes without pi-topping-compact installed: the two talk over pi's extension event bus, this
 bar announcing whether it hosts the progress and pi-topping-compact broadcasting it only while
-it does, otherwise keeping its own above-editor widget. With the setting off, or with Pi stats,
-Context bar, and Context stats all off, that widget is used instead. Focusing the setting's row
-in the settings preview shows the bottom bar mid-compaction.
+it does, otherwise keeping its own above-editor widget. With the setting off, with Pi stats,
+Context bar, and Context stats all off, or with the terminal too narrow for the stand-ins, that
+widget is used instead. Focusing the setting's row in the settings preview shows the bottom bar
+mid-compaction.
 
 ## Segments
 

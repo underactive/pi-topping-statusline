@@ -28,6 +28,7 @@ import type { Component, TUI } from "@earendil-works/pi-tui";
 import { makeBoxPainters, renderBoxRow, renderBoxRowIfVisible } from "./src/box.js";
 import {
 	COMPACTION_EMBED_CHANNEL,
+	COMPACTION_FIT_PROBE,
 	COMPACTION_PROGRESS_CHANNEL,
 	hostsCompactionProgress,
 	parseCompactionProgress,
@@ -44,10 +45,15 @@ import { buildStatusLine } from "./src/layout.js";
 import { NvidiaGreenBorder, isSwitchyardProvider } from "./src/nvidia-green.js";
 import { RAINBOW_DEG_PER_FRAME, RAINBOW_FRAME_MS, RainbowBorder, type BorderColorizer } from "./src/rainbow.js";
 import { registerSettingsCommand } from "./src/settings-menu.js";
-import { bottomRightSegments, createSettingsState, topLeftSegments } from "./src/settings.js";
+import { bottomRightSegments, COMPACTION_STAND_INS, createSettingsState, topLeftSegments } from "./src/settings.js";
 import { theme } from "./src/theme.js";
 import { TokenRateMonitor } from "./src/token-rate.js";
-import type { CompactionProgressView } from "./src/types.js";
+import type {
+	CompactionProgressView,
+	EffectiveStatusLineSettings,
+	SegmentContext,
+	StatusLineSegmentId,
+} from "./src/types.js";
 import { isMessageKind, type StatusIndicatorKind, StatusTransition } from "./src/working-status.js";
 import { hostsWorkingStatus, WORKING_STATUS_EMBED_CHANNEL } from "./src/working-status-embed.js";
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
@@ -103,8 +109,38 @@ export default function (pi: ExtensionAPI) {
 	let boxRenderFailed = false;
 	const hostingCompaction = (): boolean =>
 		activeCtx !== undefined && !boxRenderFailed && hostsCompactionProgress(state.effective);
-	const announceCompactionEmbed = (): void =>
-		pi.events.emit(COMPACTION_EMBED_CHANNEL, { embedded: hostingCompaction() });
+	// The last verdict sent on COMPACTION_EMBED_CHANNEL, so the channel only fires on change.
+	let announcedCompactionEmbed: boolean | undefined;
+	const announceCompactionEmbed = (hosts: boolean): void => {
+		if (hosts === announcedCompactionEmbed) return;
+		announcedCompactionEmbed = hosts;
+		pi.events.emit(COMPACTION_EMBED_CHANNEL, { embedded: hosts });
+	};
+	// Whether the compaction stand-ins would have room, cached by (innerWidth, effective) since
+	// it only changes on a resize or a settings change, not every frame: measured against a
+	// representative view rather than a fixed cell count, so it tracks the border/symbol/
+	// transparency settings and which segments are toggled on instead of assuming defaults.
+	const noGapColor = (s: string) => s;
+	let compactionFitCache: { innerWidth: number; effective: EffectiveStatusLineSettings; fits: boolean } | undefined;
+	const compactionWouldFit = (innerWidth: number, ctx: SegmentContext, effective: EffectiveStatusLineSettings): boolean => {
+		if (compactionFitCache && compactionFitCache.innerWidth === innerWidth && compactionFitCache.effective === effective) {
+			return compactionFitCache.fits;
+		}
+		const compactionRightIds = bottomRightSegments(effective, true);
+		let fitRight: readonly StatusLineSegmentId[] = compactionRightIds;
+		buildStatusLine(
+			innerWidth,
+			{ ...ctx, compaction: COMPACTION_FIT_PROBE },
+			effective,
+			noGapColor,
+			{ left: effective.bottomLeftSegments, right: compactionRightIds },
+			{ col: 3, row: 0 },
+			{ onFit: fit => { fitRight = fit.right; } },
+		);
+		const fits = Object.values(COMPACTION_STAND_INS).some(id => fitRight.includes(id));
+		compactionFitCache = { innerWidth, effective, fits };
+		return fits;
+	};
 	pi.events.on(COMPACTION_PROGRESS_CHANNEL, data => {
 		compaction = parseCompactionProgress(data);
 		requestRender();
@@ -160,7 +196,6 @@ export default function (pi: ExtensionAPI) {
 	registerSettingsCommand(pi, state, builder, () => {
 		syncBorderAnimation();
 		syncEmbed();
-		announceCompactionEmbed();
 		requestRender();
 	});
 
@@ -172,7 +207,10 @@ export default function (pi: ExtensionAPI) {
 		editor: { borderColor?: (str: string) => string },
 	): string[] => {
 		const ctx = activeCtx;
-		if (!ctx || width < MIN_BOXED_WIDTH) return innerRender(width);
+		if (!ctx || width < MIN_BOXED_WIDTH) {
+			announceCompactionEmbed(false);
+			return innerRender(width);
+		}
 
 		// Chrome totals 6 cells on every row, so the bar and the inner text rows
 		// share one width budget. Border rows split it 3/3 (╭── … ──╮); text rows
@@ -187,7 +225,10 @@ export default function (pi: ExtensionAPI) {
 		if ((editor as unknown as { autocompleteState?: unknown }).autocompleteState) {
 			while (bottomIdx > 0 && !isBorderRow(lines[bottomIdx] ?? "")) bottomIdx--;
 		}
-		if (lines.length < 3 || bottomIdx < 2) return innerRender(width);
+		if (lines.length < 3 || bottomIdx < 2) {
+			announceCompactionEmbed(false);
+			return innerRender(width);
+		}
 
 		const hint = stripAnsi(lines[bottomIdx] ?? "").match(/[↑↓] \d+ more/)?.[0] ?? "";
 		const effective = state.effective;
@@ -195,11 +236,9 @@ export default function (pi: ExtensionAPI) {
 		const live = effective.embedWorkingStatus ? embeddedWorkingStatus?.(innerWidth) || undefined : undefined;
 		const frame = statusTransition.resolve(live, embeddedStatusKind, Date.now());
 		if (frame.pending) startStatusAnimationTimer();
-		const hostedCompaction = hostingCompaction() ? compaction : undefined;
+		const compactionCandidate = hostingCompaction();
 		let include = effective.includes;
 		if (frame.status !== undefined) include = { ...include, git: false, pr: false };
-		// pi's footer stats are not rendered while the compaction figures stand in for them.
-		if (hostedCompaction) include = { ...include, piStats: false };
 		const segCtx = builder.build(innerWidth, effective.segmentOptions, include, hint || undefined);
 		// borderColor is assigned by the host after the factory returns — read late.
 		const border = editor.borderColor ?? ((s: string) => s);
@@ -236,17 +275,43 @@ export default function (pi: ExtensionAPI) {
 				painters.paint(i, 0, box.vertical) + " " + (lines[i] ?? "") + "   " + painters.paint(i, width - 1, box.vertical),
 			);
 		}
-		const bottomBar = buildStatusLine(
-			innerWidth,
-			hostedCompaction ? { ...segCtx, compaction: hostedCompaction } : segCtx,
-			effective,
-			painters.gapColor,
-			{
-				left: effective.bottomLeftSegments,
-				right: bottomRightSegments(effective, hostedCompaction !== undefined),
-			},
-			{ col: 3, row: bottomIdx },
-		);
+		// Swap in the stand-ins only once there is live progress to show, and only once they
+		// actually fit; otherwise pi's own stats and the context graph stay put, same as when
+		// the setting is off. Fit is checked against the real bar while a compaction is running,
+		// so the fallback below never trims further than that render already decided; before one
+		// starts, the cached probe stands in so the handshake doesn't wait on real progress.
+		const plainBottomBar = (): string =>
+			buildStatusLine(
+				innerWidth,
+				segCtx,
+				effective,
+				painters.gapColor,
+				{ left: effective.bottomLeftSegments, right: effective.bottomRightSegments },
+				{ col: 3, row: bottomIdx },
+			);
+		const activeCompaction = compactionCandidate ? compaction : undefined;
+		let compactionHostable: boolean;
+		let bottomBar: string;
+		if (activeCompaction === undefined) {
+			compactionHostable = compactionCandidate && compactionWouldFit(innerWidth, segCtx, effective);
+			bottomBar = plainBottomBar();
+		} else {
+			const compactionRightIds = bottomRightSegments(effective, true);
+			let fitRight: readonly StatusLineSegmentId[] = compactionRightIds;
+			const hostedBar = buildStatusLine(
+				innerWidth,
+				{ ...segCtx, compaction: activeCompaction },
+				effective,
+				painters.gapColor,
+				{ left: effective.bottomLeftSegments, right: compactionRightIds },
+				{ col: 3, row: bottomIdx },
+				{ onFit: fit => { fitRight = fit.right; } },
+			);
+			const shown = Object.values(COMPACTION_STAND_INS).some(id => fitRight.includes(id));
+			compactionHostable = shown;
+			bottomBar = shown ? hostedBar : plainBottomBar();
+		}
+		announceCompactionEmbed(compactionHostable);
 		out.push(...renderBoxRowIfVisible(painters, bottomBar, bottomIdx, width, box.bottomLeft, box.bottomRight));
 		for (let i = bottomIdx + 1; i < lines.length; i++) {
 			out.push(`  ${lines[i]}`);
@@ -287,7 +352,6 @@ export default function (pi: ExtensionAPI) {
 			announceEmbed(hostsWorkingStatus(activeEditor));
 			// A fresh editor retries the boxed path.
 			boxRenderFailed = false;
-			announceCompactionEmbed();
 			const innerRender = editor.render.bind(editor);
 			editor.render = width => {
 				if (boxRenderFailed) return innerRender(width);
@@ -295,7 +359,7 @@ export default function (pi: ExtensionAPI) {
 					return renderBoxed(innerRender, width, editor);
 				} catch (err) {
 					boxRenderFailed = true;
-					announceCompactionEmbed();
+					announceCompactionEmbed(false);
 					activeCtx?.ui.notify(
 						`Statusline render failed, using plain editor: ${err instanceof Error ? err.message : String(err)}`,
 						"error",
@@ -434,6 +498,6 @@ export default function (pi: ExtensionAPI) {
 		compaction = undefined;
 		activeTui = undefined;
 		activeCtx = undefined;
-		announceCompactionEmbed();
+		announceCompactionEmbed(false);
 	});
 }

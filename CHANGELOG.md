@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Keep the context graph up after a compaction: pi reports usage as unknown until the next response, so the graph now shows pi's own estimate of the compacted context, marked `~`, instead of disappearing
 - Replace the settings menu's `▸` marker with `>` and highlight the selected row with pi-topping's `selectedBg` color
+- Only announce that the bar hosts pi-topping-compact's progress once the stand-in segments actually have room, measured against the live border/symbol/transparency settings instead of a fixed cell count; a terminal too narrow, or a crowded bottom-left group, now falls back to pi-topping-compact's own above-editor widget instead of a blank bottom-right group
 
 ## [0.2.1]
 
