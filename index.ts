@@ -107,8 +107,12 @@ export default function (pi: ExtensionAPI) {
 	let compaction: CompactionProgressView | undefined;
 	// The boxed render failed and the plain editor is showing instead.
 	let boxRenderFailed = false;
+	// A COMPACTION_PROGRESS_CHANNEL payload with active: true that parseCompactionProgress
+	// could not parse: pi-topping-compact and this bar have drifted out of sync. Latched, not
+	// reset, since the mismatch persists until the extensions reload.
+	let compactionPayloadRejected = false;
 	const hostingCompaction = (): boolean =>
-		activeCtx !== undefined && !boxRenderFailed && hostsCompactionProgress(state.effective);
+		activeCtx !== undefined && !boxRenderFailed && !compactionPayloadRejected && hostsCompactionProgress(state.effective);
 	// The last verdict sent on COMPACTION_EMBED_CHANNEL, so the channel only fires on change.
 	let announcedCompactionEmbed: boolean | undefined;
 	const announceCompactionEmbed = (hosts: boolean): void => {
@@ -143,6 +147,10 @@ export default function (pi: ExtensionAPI) {
 	};
 	pi.events.on(COMPACTION_PROGRESS_CHANNEL, data => {
 		compaction = parseCompactionProgress(data);
+		if (compaction === undefined && typeof data === "object" && data !== null && (data as { active?: unknown }).active === true) {
+			compactionPayloadRejected = true;
+			announceCompactionEmbed(false);
+		}
 		requestRender();
 	});
 	const startStatusAnimationTimer = (): void => {
