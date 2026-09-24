@@ -71,7 +71,7 @@ interface ContextUsageFigures {
 /** One post-compaction estimate, keyed by session and leaf so it is rebuilt only when the branch grows. */
 interface ContextEstimate {
 	key: string;
-	tokens: number;
+	tokens: number | undefined;
 }
 
 /**
@@ -462,7 +462,8 @@ export class SegmentContextBuilder {
 		try {
 			const key = `${sessionManager.getSessionId()}\0${sessionManager.getLeafId() ?? ""}`;
 			if (this.#contextEstimate?.key !== key) {
-				this.#contextEstimate = { key, tokens: estimateCompactedContextTokens(sessionManager) };
+				this.#contextEstimate = { key, tokens: undefined };
+				this.#contextEstimate.tokens = estimateCompactedContextTokens(sessionManager);
 			}
 			return this.#contextEstimate.tokens;
 		} catch {
