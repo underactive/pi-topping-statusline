@@ -29,7 +29,7 @@ const EMA_ALPHA = 0.4;
 class StreamingWordCounter {
 	#inWordByStream = new Map<string, boolean>();
 
-	count(text: string, stream = "default"): number {
+	count(text: string, stream: string): number {
 		let inWord = this.#inWordByStream.get(stream) ?? false;
 		let count = 0;
 		for (let i = 0; i < text.length; i++) {
