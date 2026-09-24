@@ -13,6 +13,7 @@ import { RAINBOW_CYCLE_MS, RAINBOW_FRAME_MS, RainbowBorder } from "./rainbow.js"
 import {
 	applySettings,
 	BORDER_STYLES,
+	bottomRightSegments,
 	DEFAULT_FEEDS,
 	DEFAULT_SEGMENTS,
 	FEED_FORMATS,
@@ -23,8 +24,9 @@ import {
 	topLeftSegments,
 	type SettingsState,
 } from "./settings.js";
-import { theme, type BorderStyle, type SymbolPreset } from "./theme.js";
+import { hexToFgAnsi, theme, type BorderStyle, type SymbolPreset } from "./theme.js";
 import type {
+	CompactionProgressView,
 	FeedFormat,
 	SegmentContext,
 	SegmentIncludes,
@@ -175,6 +177,11 @@ function buildSections(settings: StatusLineSettings): MenuSection[] {
 				label: "Embed status spinners",
 				value: settings.embedWorkingStatus ?? false,
 			},
+			{
+				id: "embedCompactionProgress",
+				label: "Embed compaction progress",
+				value: settings.embedCompactionProgress ?? true,
+			},
 		],
 	};
 	return [
@@ -208,6 +215,7 @@ function valuesToSettings(values: Record<string, MenuValue>): StatusLineSettings
 		nvidiaGreenBorder: values.nvidiaGreenBorder === true,
 		nvidiaGreenAnimation: values.nvidiaGreenAnimation === true,
 		embedWorkingStatus: values.embedWorkingStatus === true,
+		embedCompactionProgress: values.embedCompactionProgress === true,
 	};
 }
 
@@ -226,6 +234,16 @@ const CANNED_WINDOW = 200_000;
 const CANNED_WORKING = "⠙ Mulling ⢾⣿⣿⣿⣿⣿⢾⢾  28 tps · 11s · ↓ 316 tokens";
 /** pi 0.86's compaction spinner: the longest status the bar has to carry. */
 const CANNED_COMPACTION = "⠙ Context overflow detected, Auto-compacting... (esc to cancel)";
+/** pi-topping-compact's phosphor bar as it looks with a third of the context left to compact. */
+const CANNED_COMPACTION_BAR = `${hexToFgAnsi("#72f1b8")}${"\u258b".repeat(7)}\x1b[39m\x1b[2m${hexToFgAnsi("#266446")}${"\u2591".repeat(13)}\x1b[22m\x1b[39m`;
+/** A hosted compaction mid-summary: 66% usage, 35% still to go, so 47% summarized. */
+const CANNED_COMPACTION_PROGRESS: CompactionProgressView = {
+	bar: CANNED_COMPACTION_BAR,
+	percent: 47,
+	tokensBefore: 86_000,
+	contextWindow: 131_072,
+	elapsedMs: 16_300,
+};
 
 /** Fill any feed the live session has no entry for, so the preview stays legible. */
 function cannedFeedData(
@@ -328,14 +346,17 @@ class StatusLinePreview {
 				{ col: 3, row: 0 },
 				{ workingEllipsis: compactionDemo ? "…" : "" },
 			);
+			// Focusing the compaction row demos the bottom bar hosting
+			// pi-topping-compact's progress, while the setting is on.
+			const progressDemo = activeItemId === "embedCompactionProgress" && effective.embedCompactionProgress;
 			const bottom = buildStatusLine(
 				barWidth,
-				ctx,
+				progressDemo ? { ...ctx, compaction: CANNED_COMPACTION_PROGRESS } : ctx,
 				effective,
 				painters.gapColor,
 				{
 					left: effective.bottomLeftSegments,
-					right: effective.bottomRightSegments,
+					right: bottomRightSegments(effective, progressDemo),
 				},
 				{ col: 3, row: bottomIdx },
 			);
@@ -363,7 +384,7 @@ export function registerSettingsCommand(
 	onChange: () => void,
 ): void {
 	pi.registerCommand("topping-statusline-settings", {
-		description: "Configure transparent segments, statusline segments, separator, symbols, border style, feeds, rainbow border animation, the Switchyard NVIDIA-green border, and the embedded status spinners",
+		description: "Configure transparent segments, statusline segments, separator, symbols, border style, feeds, rainbow border animation, the Switchyard NVIDIA-green border, the embedded status spinners, and the embedded compaction progress",
 		handler: async (_args, ctx: ExtensionCommandContext) => {
 			if (ctx.mode !== "tui") {
 				ctx.ui.notify("/topping-statusline-settings requires TUI mode", "error");

@@ -26,6 +26,12 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
 import { makeBoxPainters, renderBoxRow, renderBoxRowIfVisible } from "./src/box.js";
+import {
+	COMPACTION_EMBED_CHANNEL,
+	COMPACTION_PROGRESS_CHANNEL,
+	hostsCompactionProgress,
+	parseCompactionProgress,
+} from "./src/compaction-embed.js";
 import { SegmentContextBuilder } from "./src/context.js";
 import {
 	collapseFooterLayoutSlot,
@@ -38,9 +44,10 @@ import { buildStatusLine } from "./src/layout.js";
 import { NvidiaGreenBorder, isSwitchyardProvider } from "./src/nvidia-green.js";
 import { RAINBOW_DEG_PER_FRAME, RAINBOW_FRAME_MS, RainbowBorder, type BorderColorizer } from "./src/rainbow.js";
 import { registerSettingsCommand } from "./src/settings-menu.js";
-import { createSettingsState, topLeftSegments } from "./src/settings.js";
+import { bottomRightSegments, createSettingsState, topLeftSegments } from "./src/settings.js";
 import { theme } from "./src/theme.js";
 import { TokenRateMonitor } from "./src/token-rate.js";
+import type { CompactionProgressView } from "./src/types.js";
 import { isMessageKind, type StatusIndicatorKind, StatusTransition } from "./src/working-status.js";
 import { hostsWorkingStatus, WORKING_STATUS_EMBED_CHANNEL } from "./src/working-status-embed.js";
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
@@ -86,6 +93,22 @@ export default function (pi: ExtensionAPI) {
 
 	const requestRender = () => activeTui?.requestRender();
 	builder.setRequestRender(requestRender);
+
+	// pi-topping-compact's live compaction progress, while it broadcasts one. The
+	// bottom-right group hosts it in place of pi's stats and the context graph.
+	// pi-topping-compact broadcasts only while this bar announces that it hosts the
+	// progress, and shows its own above-editor widget otherwise.
+	let compaction: CompactionProgressView | undefined;
+	// The boxed render failed and the plain editor is showing instead.
+	let boxRenderFailed = false;
+	const hostingCompaction = (): boolean =>
+		activeCtx !== undefined && !boxRenderFailed && hostsCompactionProgress(state.effective);
+	const announceCompactionEmbed = (): void =>
+		pi.events.emit(COMPACTION_EMBED_CHANNEL, { embedded: hostingCompaction() });
+	pi.events.on(COMPACTION_PROGRESS_CHANNEL, data => {
+		compaction = parseCompactionProgress(data);
+		requestRender();
+	});
 	const startStatusAnimationTimer = (): void => {
 		if (statusAnimationTimer) return;
 		statusAnimationTimer = setInterval(() => {
@@ -137,6 +160,7 @@ export default function (pi: ExtensionAPI) {
 	registerSettingsCommand(pi, state, builder, () => {
 		syncBorderAnimation();
 		syncEmbed();
+		announceCompactionEmbed();
 		requestRender();
 	});
 
@@ -171,8 +195,11 @@ export default function (pi: ExtensionAPI) {
 		const live = effective.embedWorkingStatus ? embeddedWorkingStatus?.(innerWidth) || undefined : undefined;
 		const frame = statusTransition.resolve(live, embeddedStatusKind, Date.now());
 		if (frame.pending) startStatusAnimationTimer();
-		const include =
-			frame.status === undefined ? effective.includes : { ...effective.includes, git: false, pr: false };
+		const hostedCompaction = hostingCompaction() ? compaction : undefined;
+		let include = effective.includes;
+		if (frame.status !== undefined) include = { ...include, git: false, pr: false };
+		// pi's footer stats are not rendered while the compaction figures stand in for them.
+		if (hostedCompaction) include = { ...include, piStats: false };
 		const segCtx = builder.build(innerWidth, effective.segmentOptions, include, hint || undefined);
 		// borderColor is assigned by the host after the factory returns — read late.
 		const border = editor.borderColor ?? ((s: string) => s);
@@ -211,12 +238,12 @@ export default function (pi: ExtensionAPI) {
 		}
 		const bottomBar = buildStatusLine(
 			innerWidth,
-			segCtx,
+			hostedCompaction ? { ...segCtx, compaction: hostedCompaction } : segCtx,
 			effective,
 			painters.gapColor,
 			{
 				left: effective.bottomLeftSegments,
-				right: effective.bottomRightSegments,
+				right: bottomRightSegments(effective, hostedCompaction !== undefined),
 			},
 			{ col: 3, row: bottomIdx },
 		);
@@ -258,14 +285,17 @@ export default function (pi: ExtensionAPI) {
 				editor = own;
 			}
 			announceEmbed(hostsWorkingStatus(activeEditor));
+			// A fresh editor retries the boxed path.
+			boxRenderFailed = false;
+			announceCompactionEmbed();
 			const innerRender = editor.render.bind(editor);
-			let boxRenderFailed = false;
 			editor.render = width => {
 				if (boxRenderFailed) return innerRender(width);
 				try {
 					return renderBoxed(innerRender, width, editor);
 				} catch (err) {
 					boxRenderFailed = true;
+					announceCompactionEmbed();
 					activeCtx?.ui.notify(
 						`Statusline render failed, using plain editor: ${err instanceof Error ? err.message : String(err)}`,
 						"error",
@@ -401,7 +431,9 @@ export default function (pi: ExtensionAPI) {
 		announceEmbed(false);
 		stopStatusAnimationTimer();
 		statusTransition.reset();
+		compaction = undefined;
 		activeTui = undefined;
 		activeCtx = undefined;
+		announceCompactionEmbed();
 	});
 }

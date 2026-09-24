@@ -45,6 +45,7 @@ and apply live.
 ║    [■] NVIDIA-green when using Switchyard                  ON  ║
 ║    [■] Animate Switchyard green border                     ON  ║
 ║    [ ] Embed status spinners                               OFF ║
+║    [■] Embed compaction progress                           ON  ║
 ║                                                                ║
 ╟─ Top Left Segment Group ───────────────────────────────────────╢
 ║    [■] Pi symbol                                           ON  ║
@@ -69,18 +70,18 @@ and apply live.
 ║    + add feed                                                  ║
 ║                                                                ║
 ║  ↑↓ move  ←→ cycle  ␣ toggle  ⏎ apply/edit  esc cancel         ║
-╚════════════════════════════════════════════════════════[ 1/32 ]╝
+╚════════════════════════════════════════════════════════[ 1/33 ]╝
 ```
 
 | Section | Settings |
 | --- | --- |
-| Global | Transparent Segments · Separator (`powerline` `powerline-thin` `slash` `pipe` `ascii`) · Symbols (`nerdfont` `unicode` `ascii` — stored in settings.json as `nerd`/`unicode`/`ascii`) · Border style (`rounded` `heavy` `double` `single`) · Rainbow border on max thinking · Animate rainbow border · NVIDIA-green when using Switchyard · Animate Switchyard green border · Embed status spinners |
+| Global | Transparent Segments · Separator (`powerline` `powerline-thin` `slash` `pipe` `ascii`) · Symbols (`nerdfont` `unicode` `ascii` — stored in settings.json as `nerd`/`unicode`/`ascii`) · Border style (`rounded` `heavy` `double` `single`) · Rainbow border on max thinking · Animate rainbow border · NVIDIA-green when using Switchyard · Animate Switchyard green border · Embed status spinners · Embed compaction progress |
 | Top Left Segment Group | Pi symbol · Model · Provider · Thinking level · Path · Git · PR |
 | Top Right Segment Group | Token rate · Session name |
 | Bottom Right Segment Group | Feeds · Token rate · Pi stats · Context bar · Context stats |
 | Bottom Left Segment Group | Scroll hint · Feeds · Token rate |
 | Feeds | One subscription per row: type · field · prefix · format, plus add/remove |
-| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on · Animate rainbow border on · NVIDIA-green when using Switchyard on · Animate Switchyard green border on · Embed status spinners off |
+| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on · Animate rainbow border on · NVIDIA-green when using Switchyard on · Animate Switchyard green border on · Embed status spinners off · Embed compaction progress on |
 
 With **Rainbow border on max thinking** on (the default), cycling the thinking level to `max`
 replaces the border's fixed theme color with a rainbow: a full hue cycle distributed around the
@@ -118,6 +119,20 @@ editor through pi, so it applies immediately, even mid-response. Only the status
 editor opts in: when another extension owns the editor slot and is wrapped, pi keeps its
 standalone status row.
 
+**Embed compaction progress** (on by default) hosts
+[pi-topping-compact](https://github.com/underactive/pi-topping-compact)'s compaction progress in
+the box's bottom border while a compaction runs. Its phosphor bar stands in for the context
+graph, followed by the tokens being compacted over the window and as a share of it
+(`86K/131K (66%)`), and `57% summarized · 16.3s` — how much has been summarized so far, and the
+time taken — stands in for pi's stats. The bar and its label follow the Context bar and Context
+stats toggles. The moment the compaction ends, pi's stats and the context graph return, and
+pi-topping-compact shows its completion result above the editor as it always has. Nothing
+changes without pi-topping-compact installed: the two talk over pi's extension event bus, this
+bar announcing whether it hosts the progress and pi-topping-compact broadcasting it only while
+it does, otherwise keeping its own above-editor widget. With the setting off, or with Pi stats,
+Context bar, and Context stats all off, that widget is used instead. Focusing the setting's row
+in the settings preview shows the bottom bar mid-compaction.
+
 ## Segments
 
 Ported with pi data: `pi`, `model` (model · provider · thinking level), `path`
@@ -127,7 +142,9 @@ fs-watch), `pr` (via `gh`, hidden if missing), `session_name`, `token_rate` (liv
 accent while active, held 1.5s, faded 0.5s, then a dim `--- tok/s` placeholder; estimate
 pipelined from pi-topping's word-count EMA; available in the top-right, bottom-left, and
 bottom-right groups), `pi_stats`, `context_graph` (bar + stats), `scroll_hint`, plus `feeds`
-(documented below). On pi 0.86 and later, `pi_stats` includes cache-warming refreshes folded
+(documented below), with `compaction_info` and `compaction_graph` standing in for `pi_stats` and
+`context_graph` while pi-topping-compact's progress is hosted. On pi 0.86 and later, `pi_stats`
+includes cache-warming refreshes folded
 into pi's own footer totals, so cache R/W and cost can increase while idle; this segment matches
 the host footer by construction.
 

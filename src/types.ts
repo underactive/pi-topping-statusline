@@ -19,7 +19,9 @@ export type StatusLineSegmentId =
 	| "feeds"
 	| "context_graph"
 	| "scroll_hint"
-	| "working";
+	| "working"
+	| "compaction_info"
+	| "compaction_graph";
 
 /**
  * A feed the statusline subscribes to: custom session entries published by
@@ -80,6 +82,8 @@ export interface StatusLineSettings {
 	nvidiaGreenAnimation?: boolean;
 	/** Render pi's status spinners in the top bar instead of their own row. */
 	embedWorkingStatus?: boolean;
+	/** Host pi-topping-compact's compaction progress in the bottom bar while a compaction runs. */
+	embedCompactionProgress?: boolean;
 }
 
 /** Resolved per-segment render options; resolveEffectiveSettings always fills them. */
@@ -115,6 +119,7 @@ export interface EffectiveStatusLineSettings {
 	nvidiaGreenBorder: boolean;
 	nvidiaGreenAnimation: boolean;
 	embedWorkingStatus: boolean;
+	embedCompactionProgress: boolean;
 	includes: SegmentIncludes;
 }
 
@@ -148,6 +153,11 @@ export interface SegmentContext {
 	 * this frame. Absent while no status indicator is active.
 	 */
 	workingStatus?: string;
+	/**
+	 * pi-topping-compact's live compaction progress, while its bar and figures
+	 * stand in for the context graph and pi's stats in the bottom-right group.
+	 */
+	compaction?: CompactionProgressView;
 	/** Live tok/s display state, when this frame needs it. */
 	tokenRate: TokenRateDisplay | undefined;
 	/**
@@ -162,6 +172,17 @@ export interface SegmentContext {
 	 * active so previews and manually constructed contexts retain full color.
 	 */
 	feedDisplayState?: Record<string, FeedDisplayState>;
+}
+
+/** One broadcast from pi-topping-compact: its bar, pre-rendered, plus the snapshot it was drawn from. */
+export interface CompactionProgressView {
+	/** The 20-cell bar, pre-rendered and pre-colored by pi-topping-compact with fg-only resets. */
+	bar: string;
+	/** How much of the context has been summarized so far, 0..100. */
+	percent: number;
+	tokensBefore: number;
+	contextWindow: number;
+	elapsedMs: number;
 }
 
 export type FeedPhase = "active" | "fading" | "hidden";

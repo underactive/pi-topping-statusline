@@ -14,6 +14,7 @@ import { MAJOR_COLOR_HEXES, hexToFgAnsi, theme } from "./theme.js";
 import {
 	clampPathLength,
 	feedKey,
+	formatNumber,
 	getSessionAccentHex,
 	sanitizeLabel,
 	sanitizeStatusText,
@@ -21,6 +22,7 @@ import {
 	withIcon,
 } from "./utils.js";
 import type {
+	CompactionProgressView,
 	FeedFormat,
 	RenderedSegment,
 	SegmentContext,
@@ -350,6 +352,55 @@ const contextGraphSegment: StatusLineSegment = {
 	},
 };
 
+const clampPercent = (percent: number): number => Math.round(Math.min(100, Math.max(0, percent)));
+
+/** "57% summarized · 16.3s": how much of the context has been summarized so far, and the time taken. */
+export function formatCompactionInfo(view: CompactionProgressView): string {
+	const elapsed = `${(Math.max(0, view.elapsedMs) / 1000).toFixed(1)}s`;
+	return `${clampPercent(view.percent)}% summarized${theme.sep.dot}${elapsed}`;
+}
+
+/**
+ * "86K/131K (66%)": the tokens being compacted over the window, and as a share
+ * of it, in the context label's number style. The share is omitted when the
+ * window is unknown.
+ */
+export function formatCompactionTokens(view: CompactionProgressView): string {
+	const before = formatNumber(Math.max(0, view.tokensBefore));
+	if (view.contextWindow <= 0) return `${before}/?`;
+	const usage = clampPercent((view.tokensBefore / view.contextWindow) * 100);
+	return `${before}/${formatNumber(view.contextWindow)} (${usage}%)`;
+}
+
+/** pi-topping-compact's figures, standing in for pi's stats while its progress is hosted. */
+const compactionInfoSegment: StatusLineSegment = {
+	id: "compaction_info",
+	render(ctx) {
+		const view = ctx.compaction;
+		if (!view) return INVISIBLE;
+		return { content: theme.fg("dim", formatCompactionInfo(view)), visible: true };
+	},
+};
+
+/**
+ * pi-topping-compact's bar, standing in for the context graph while its progress
+ * is hosted, under the graph's own bar and stats toggles. The bar arrives
+ * pre-rendered with fg-only resets, so it is passed through verbatim.
+ */
+const compactionGraphSegment: StatusLineSegment = {
+	id: "compaction_graph",
+	render(ctx) {
+		const view = ctx.compaction;
+		if (!view) return INVISIBLE;
+		const { showBar, showStats } = ctx.options.context;
+		const parts: string[] = [];
+		if (showBar) parts.push(view.bar);
+		if (showStats) parts.push(`${theme.getFgAnsi("dim")}${formatCompactionTokens(view)}\x1b[39m`);
+		if (parts.length === 0) return INVISIBLE;
+		return { content: parts.join(" "), visible: true };
+	},
+};
+
 const accentAnsi = new Map<string, string>();
 
 const sessionNameSegment: StatusLineSegment = {
@@ -384,6 +435,8 @@ export const SEGMENTS: Record<StatusLineSegmentId, StatusLineSegment> = {
 	context_graph: contextGraphSegment,
 	scroll_hint: scrollHintSegment,
 	working: workingSegment,
+	compaction_info: compactionInfoSegment,
+	compaction_graph: compactionGraphSegment,
 };
 
 export function renderSegment(id: StatusLineSegmentId, ctx: SegmentContext): RenderedSegment {

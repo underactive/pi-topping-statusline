@@ -96,6 +96,7 @@ function loadSettings(): StatusLineSettings {
 		if (typeof raw.nvidiaGreenBorder === "boolean") settings.nvidiaGreenBorder = raw.nvidiaGreenBorder;
 		if (typeof raw.nvidiaGreenAnimation === "boolean") settings.nvidiaGreenAnimation = raw.nvidiaGreenAnimation;
 		if (typeof raw.embedWorkingStatus === "boolean") settings.embedWorkingStatus = raw.embedWorkingStatus;
+		if (typeof raw.embedCompactionProgress === "boolean") settings.embedCompactionProgress = raw.embedCompactionProgress;
 		return settings;
 	} catch {
 		// Missing or corrupt settings.json falls back to defaults.
@@ -161,6 +162,7 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 		nvidiaGreenBorder: settings.nvidiaGreenBorder ?? true,
 		nvidiaGreenAnimation: settings.nvidiaGreenAnimation ?? true,
 		embedWorkingStatus: settings.embedWorkingStatus ?? false,
+		embedCompactionProgress: settings.embedCompactionProgress ?? true,
 		includes,
 		segmentOptions: {
 			model: { showModel: seg.model, showProvider: seg.provider, showThinking: seg.thinking },
@@ -184,6 +186,21 @@ export function topLeftSegments(effective: EffectiveStatusLineSettings, working:
 	const segments = effective.leftSegments.filter((id) => STATUS_STABLE_SEGMENTS.has(id));
 	segments.splice(segments.indexOf("pi") + 1, 0, "working");
 	return segments;
+}
+
+/** Bottom-right segments a hosted compaction stands in for, and their stand-ins. */
+export const COMPACTION_STAND_INS: Partial<Record<StatusLineSegmentId, StatusLineSegmentId>> = {
+	pi_stats: "compaction_info",
+	context_graph: "compaction_graph",
+};
+
+/**
+ * The bottom-right group for one frame. While pi-topping-compact's progress is
+ * hosted, its figures stand in for pi's stats and its bar for the context graph.
+ */
+export function bottomRightSegments(effective: EffectiveStatusLineSettings, compacting: boolean): StatusLineSegmentId[] {
+	if (!compacting) return effective.bottomRightSegments;
+	return effective.bottomRightSegments.map((id) => COMPACTION_STAND_INS[id] ?? id);
 }
 
 export interface SettingsState {

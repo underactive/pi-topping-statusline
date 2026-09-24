@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add a default-on **Embed compaction progress** setting (`embedCompactionProgress`): while pi-topping-compact runs a compaction, its phosphor bar and figures stand in for the context graph and pi's stats in the bottom-right group, and hand back the moment the compaction ends
+- Add `compaction_info` and `compaction_graph` segments, the bottom-right stand-ins for `pi_stats` and `context_graph` while a compaction is hosted
+- Announce on pi's extension event bus whether the bar hosts pi-topping-compact's progress, so that extension broadcasts it here instead of showing its above-editor widget
+
 ### Changed
 
 - Keep configured model, provider, and thinking details visible after embedded status spinners
