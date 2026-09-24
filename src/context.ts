@@ -331,7 +331,7 @@ export class SegmentContextBuilder {
 	#refreshFeeds(customTypes: readonly string[], now: number): void {
 		this.#feedsScannedAt = now;
 		this.#feedData = emptyFeedData();
-		const entries = this.#ctx?.sessionManager?.getEntries();
+		const entries = this.#ctx?.sessionManager.getEntries();
 		if (!entries) return;
 		const pending = new Set(customTypes);
 		for (let i = entries.length - 1; i >= 0 && pending.size > 0; i--) {
@@ -520,7 +520,7 @@ export class SegmentContextBuilder {
 			model,
 			thinkingLevel: this.#pi.getThinkingLevel(),
 			cwd: ctx?.cwd ?? process.cwd(),
-			sessionName: ctx?.sessionManager?.getSessionName(),
+			sessionName: ctx?.sessionManager.getSessionName(),
 			contextPercent,
 			contextTokens: tokens,
 			contextWindow,
