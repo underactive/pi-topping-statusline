@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2]
+
+> **Note:** the compaction progress entries below integrate with `pi-topping-compact`, which is in alpha and not yet released. Without it installed the bar is unchanged — pi's stats and the context graph stay in the bottom-right group, exactly as before this version.
+
 ### Added
 
 - Add a default-on **Embed compaction progress** setting (`embedCompactionProgress`): while pi-topping-compact runs a compaction, its phosphor bar and figures stand in for the context graph and pi's stats in the bottom-right group, and hand back the moment the compaction ends
@@ -24,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Keep the context graph up after a compaction: pi reports usage as unknown until the next response, so the graph now shows pi's own estimate of the compacted context, marked `~`, instead of disappearing
 - Replace the settings menu's `▸` marker with `>` and highlight the selected row with pi-topping's `selectedBg` color
 - Only announce that the bar hosts pi-topping-compact's progress once the stand-in segments actually have room, measured against the live border/symbol/transparency settings instead of a fixed cell count; a terminal too narrow, or a crowded bottom-left group, now falls back to pi-topping-compact's own above-editor widget instead of a blank bottom-right group
+- Trim trailing left-group segments before an embedded status when the bar overflows, so the spinner keeps at least one cell instead of being spliced out while static model details still live behind it
+- Restore the left group's foreground and background colors after truncating an embedded working status
+- Reapply the selected row's background after a hard reset in the settings menu, so truncation no longer leaves the highlight running past the label
+- Key feed rows by a stable id instead of their position, so removing a feed no longer re-points the surviving rows' values at the wrong subscription
+- Fall back to pi-topping-compact's own above-editor widget when a broadcast reports an active compaction with an unparseable payload, instead of standing in with a blank bottom-right group
+- Skip `git status` polling while an embedded status hides the git and PR segments
+- Cache a failed context estimate against the leaf it was computed from, so an estimator that throws no longer re-throws on every render
 
 ## [0.2.1]
 
