@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3]
+
+### Changed
+
+- Tested against pi 0.99
+- Bump `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`, and `@earendil-works/pi-tui` devDependencies to 0.99.1
+
 ## [0.2.2]
 
 > **Note:** the compaction progress entries below integrate with `pi-topping-compact`, which is in alpha and not yet released. Without it installed the bar is unchanged — pi's stats and the context graph stay in the bottom-right group, exactly as before this version.
