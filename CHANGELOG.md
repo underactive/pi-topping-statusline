@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Tested against pi 1.0.0
+- Bump `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`, and `@earendil-works/pi-tui` devDependencies to 1.0.0
+- Take the bar's color depth from pi's terminal detection, so `PI_TRUE_COLOR` and the `terminal.trueColor` setting now apply to the bar too
+
 ## [0.2.4]
 
 ### Changed
