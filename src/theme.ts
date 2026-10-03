@@ -8,6 +8,7 @@
  * embedded here. Values are hex strings (truecolor), 256-palette indices
  * (numbers), or "" for the terminal default color.
  */
+import { getTerminalColorMode } from "@earendil-works/pi-tui";
 
 export type SymbolPreset = "unicode" | "nerd" | "ascii";
 
@@ -230,13 +231,9 @@ export const MAJOR_COLOR_HEXES = [
 
 export type ColorMode = "truecolor" | "256color";
 
+/** Defer to pi's cached terminal detection, which honors PI_TRUE_COLOR, terminal.trueColor, and capability overrides. */
 export function detectColorMode(): ColorMode {
-	const colorterm = process.env.COLORTERM;
-	if (colorterm === "truecolor" || colorterm === "24bit") return "truecolor";
-	if (process.env.WT_SESSION) return "truecolor";
-	const term = process.env.TERM || "";
-	if (term === "dumb" || term === "" || term === "linux") return "256color";
-	return "truecolor";
+	return getTerminalColorMode();
 }
 
 export function parseHex(hex: string): [number, number, number] | undefined {
@@ -314,11 +311,25 @@ function bgAnsi(color: ColorValue, mode: ColorMode): string {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class StatusTheme {
-	#mode: ColorMode = detectColorMode();
+	#mode: ColorMode | undefined;
 	#preset: SymbolPreset = "nerd";
 	#symbols: StatusSymbols = NERD_SYMBOLS;
 	#fgCache = new Map<StatusColor, string>();
 	#bgAnsi: string | undefined;
+
+	/**
+	 * Pi imports extensions before it applies terminal.trueColor and reapplies
+	 * overrides when settings change, so resolve the mode on use and drop stale ANSI.
+	 */
+	#currentMode(): ColorMode {
+		const mode = detectColorMode();
+		if (mode !== this.#mode) {
+			this.#mode = mode;
+			this.#fgCache.clear();
+			this.#bgAnsi = undefined;
+		}
+		return mode;
+	}
 
 	setSymbolPreset(preset: SymbolPreset): SymbolPreset {
 		const previous = this.#preset;
@@ -345,16 +356,18 @@ class StatusTheme {
 	}
 
 	getFgAnsi(color: StatusColor): string {
+		const mode = this.#currentMode();
 		let ansi = this.#fgCache.get(color);
 		if (ansi === undefined) {
-			ansi = fgAnsi(FG_COLORS[color], this.#mode);
+			ansi = fgAnsi(FG_COLORS[color], mode);
 			this.#fgCache.set(color, ansi);
 		}
 		return ansi;
 	}
 
 	getBgAnsi(): string {
-		if (this.#bgAnsi === undefined) this.#bgAnsi = bgAnsi(STATUS_LINE_BG, this.#mode);
+		const mode = this.#currentMode();
+		if (this.#bgAnsi === undefined) this.#bgAnsi = bgAnsi(STATUS_LINE_BG, mode);
 		return this.#bgAnsi;
 	}
 
@@ -376,7 +389,7 @@ class StatusTheme {
 		const r = Math.round(a[0] * (1 - eased) + b[0] * eased);
 		const g = Math.round(a[1] * (1 - eased) + b[1] * eased);
 		const bl = Math.round(a[2] * (1 - eased) + b[2] * eased);
-		const ansi = rgbToFgAnsi(r, g, bl, this.#mode);
+		const ansi = rgbToFgAnsi(r, g, bl, this.#currentMode());
 		return `${ansi}${text}\x1b[39m`;
 	}
 
@@ -392,7 +405,7 @@ class StatusTheme {
 		const alpha = Math.max(0, Math.min(1, opacity));
 		if (alpha >= 1) return text;
 		const target = colorValueToRgb(STATUS_LINE_BG);
-		const mode = this.#mode;
+		const mode = this.#currentMode();
 		return text.replace(SGR_COLOR_RE, (_m, tcPlane, r, g, b, ixPlane, index) => {
 			let plane = "38";
 			let rgb: [number, number, number] = DEFAULT_FG_RGB;

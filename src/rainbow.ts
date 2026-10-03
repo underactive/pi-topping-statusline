@@ -80,12 +80,11 @@ export interface BorderColorizer {
  */
 export class RainbowBorder implements BorderColorizer {
 	#phaseDeg: number;
-	readonly #mode: ColorMode;
+	#mode: ColorMode | undefined;
 	readonly #ansiByHue: string[] = [];
 
 	constructor(phaseDeg = 0) {
 		this.#phaseDeg = wrapDeg(phaseDeg);
-		this.#mode = detectColorMode();
 	}
 
 	/** Advance the whole spectrum by `deltaDeg` (mod 360). */
@@ -99,12 +98,17 @@ export class RainbowBorder implements BorderColorizer {
 	}
 
 	prefix(perimeterPos: number, perimeter: number): string {
+		const mode = detectColorMode();
+		if (mode !== this.#mode) {
+			this.#mode = mode;
+			this.#ansiByHue.length = 0;
+		}
 		const hue = (this.#phaseDeg + (360 * perimeterPos) / perimeter) % 360;
 		const bucket = Math.round(hue) % 360;
 		let ansi = this.#ansiByHue[bucket];
 		if (ansi === undefined) {
 			const hex = rgbToHex(hslToRgb(bucket, SATURATION, LIGHTNESS));
-			ansi = hexToFgAnsi(hex, this.#mode);
+			ansi = hexToFgAnsi(hex, mode);
 			this.#ansiByHue[bucket] = ansi;
 		}
 		return ansi;

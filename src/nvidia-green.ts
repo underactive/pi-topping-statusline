@@ -41,11 +41,9 @@ function buildAnsiByShade(mode: ColorMode): string[] {
 
 export class NvidiaGreenBorder implements BorderColorizer {
 	#phaseDeg: number;
-	readonly #ansiByShade: string[];
 
 	constructor(phaseDeg = 0) {
 		this.#phaseDeg = wrapDeg(phaseDeg);
-		this.#ansiByShade = buildAnsiByShade(detectColorMode());
 	}
 
 	step(deltaDeg: number): void {
@@ -61,6 +59,6 @@ export class NvidiaGreenBorder implements BorderColorizer {
 		const u = (1 - Math.cos(2 * Math.PI * t)) / 2;
 		const eased = u ** GREEN_BIAS;
 		const shadeIndex = Math.round((1 - eased) * (GREEN_SHADE_COUNT - 1));
-		return this.#ansiByShade[shadeIndex];
+		return buildAnsiByShade(detectColorMode())[shadeIndex];
 	}
 }
