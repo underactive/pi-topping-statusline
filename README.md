@@ -21,6 +21,9 @@ Then `/reload` (or restart pi). Requirements: a [Nerd Font](https://www.nerdfont
 truecolor terminal for the default look — the Symbols setting in
 `/topping-statusline-settings` (`unicode` or `ascii`) drops the font requirement.
 
+The bar's color depth follows pi's terminal detection, so `PI_TRUE_COLOR` and the
+`terminal.trueColor` setting pick 24-bit or 256-color output for it too.
+
 ## Configuration — `/topping-statusline-settings`
 
 `/topping-statusline-settings` opens a settings TUI with a live preview of the box's top and
