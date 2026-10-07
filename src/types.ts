@@ -82,7 +82,7 @@ export interface StatusLineSettings {
 	nvidiaGreenAnimation?: boolean;
 	/** Render pi's status spinners in the top bar instead of their own row. */
 	embedWorkingStatus?: boolean;
-	/** Host pi-topping-compact's compaction progress in the bottom bar while a compaction runs. */
+	/** Host compaction progress in the bottom bar while pi compacts. */
 	embedCompactionProgress?: boolean;
 }
 
@@ -159,8 +159,8 @@ export interface SegmentContext {
 	 */
 	workingStatus?: string;
 	/**
-	 * pi-topping-compact's live compaction progress, while its bar and figures
-	 * stand in for the context graph and pi's stats in the bottom-right group.
+	 * The live compaction progress, while its bar and figures stand in for the
+	 * context graph and pi's stats in the bottom-right group.
 	 */
 	compaction?: CompactionProgressView;
 	/** Live tok/s display state, when this frame needs it. */
@@ -179,11 +179,11 @@ export interface SegmentContext {
 	feedDisplayState?: Record<string, FeedDisplayState>;
 }
 
-/** One broadcast from pi-topping-compact: its bar, pre-rendered, plus the snapshot it was drawn from. */
+/** One frame of a running compaction from CompactionMonitor: the bar, pre-rendered by compaction-bar.ts with fg-only resets, plus the figures it was drawn from. */
 export interface CompactionProgressView {
-	/** The 20-cell bar, pre-rendered and pre-colored by pi-topping-compact with fg-only resets. */
+	/** The 20-cell bar, pre-rendered by compaction-bar.ts with fg-only resets. */
 	bar: string;
-	/** How much of the context has been summarized so far, 0..100. */
+	/** How far the compaction has progressed, 0..100 (a time-based estimate until pi completes). */
 	percent: number;
 	tokensBefore: number;
 	contextWindow: number;

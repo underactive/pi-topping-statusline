@@ -373,7 +373,7 @@ export function formatCompactionTokens(view: CompactionProgressView): string {
 	return `${before}/${formatNumber(view.contextWindow)} (${usage}%)`;
 }
 
-/** pi-topping-compact's figures, standing in for pi's stats while its progress is hosted. */
+/** The compaction's figures, standing in for pi's stats while its progress is hosted. */
 const compactionInfoSegment: StatusLineSegment = {
 	id: "compaction_info",
 	render(ctx) {
@@ -384,8 +384,8 @@ const compactionInfoSegment: StatusLineSegment = {
 };
 
 /**
- * pi-topping-compact's bar, standing in for the context graph while its progress
- * is hosted, under the graph's own bar and stats toggles. The bar arrives
+ * The compaction bar, standing in for the context graph while its progress is
+ * hosted, under the graph's own bar and stats toggles. The bar arrives
  * pre-rendered with fg-only resets, so it is passed through verbatim.
  */
 const compactionGraphSegment: StatusLineSegment = {

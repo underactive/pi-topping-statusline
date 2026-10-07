@@ -195,8 +195,8 @@ export const COMPACTION_STAND_INS: Partial<Record<StatusLineSegmentId, StatusLin
 };
 
 /**
- * The bottom-right group for one frame. While pi-topping-compact's progress is
- * hosted, its figures stand in for pi's stats and its bar for the context graph.
+ * The bottom-right group for one frame. While a compaction is hosted, its
+ * figures stand in for pi's stats and its bar for the context graph.
  */
 export function bottomRightSegments(effective: EffectiveStatusLineSettings, compacting: boolean): StatusLineSegmentId[] {
 	if (!compacting) return effective.bottomRightSegments;

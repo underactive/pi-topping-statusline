@@ -284,7 +284,7 @@ function rgbTo256(r: number, g: number, b: number): number {
 	return 16 + 36 * scale(r) + 6 * scale(g) + scale(b);
 }
 
-function rgbToFgAnsi(r: number, g: number, b: number, mode: ColorMode): string {
+export function rgbToFgAnsi(r: number, g: number, b: number, mode: ColorMode): string {
 	return mode === "truecolor" ? `\x1b[38;2;${r};${g};${b}m` : `\x1b[38;5;${rgbTo256(r, g, b)}m`;
 }
 

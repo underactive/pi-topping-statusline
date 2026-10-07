@@ -2,8 +2,7 @@
  * The context graph between a compaction and the next response. pi reports
  * usage as unknown for that stretch; the builder fills it with pi's own
  * estimate of the compacted context, the figure pi hands compaction callers as
- * estimatedTokensAfter, so the graph never vanishes and agrees with the result
- * pi-topping-compact reports.
+ * estimatedTokensAfter.
  */
 import assert from "node:assert/strict";
 import test from "node:test";

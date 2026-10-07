@@ -1,12 +1,12 @@
 /**
- * Contracts for hosting pi-topping-compact's compaction progress: the broadcast
- * parser, the preconditions for announcing that the bar hosts it, the
- * bottom-right stand-ins, and the two segments that draw the bar and figures.
+ * Contracts for hosting compaction progress: the preconditions for hosting it,
+ * the bottom-right stand-ins, the two segments that draw the bar and figures,
+ * and the preview view.
  */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { hostsCompactionProgress, parseCompactionProgress } from "../compaction-embed.ts";
+import { compactionPreviewView, hostsCompactionProgress } from "../compaction-embed.ts";
 import { stripAnsi } from "../footer.ts";
 import { buildStatusLine } from "../layout.ts";
 import { formatCompactionInfo, formatCompactionTokens, SEGMENTS } from "../segments.ts";
@@ -47,23 +47,13 @@ function ctxWith(compaction: CompactionProgressView | undefined): SegmentContext
 	};
 }
 
-test("parseCompactionProgress accepts an active broadcast and rejects everything else", () => {
-	assert.deepEqual(
-		parseCompactionProgress({ active: true, ...VIEW, phase: "summarizing", remainingPercent: 35 }),
-		VIEW,
-		"the rest of the snapshot is ignored",
-	);
-	assert.equal(parseCompactionProgress({ active: false }), undefined);
-	assert.equal(parseCompactionProgress({ ...VIEW, active: "true" }), undefined);
-	assert.equal(parseCompactionProgress({ active: true, ...VIEW, bar: 7 }), undefined);
-	assert.equal(parseCompactionProgress({ active: true, ...VIEW, percent: undefined }), undefined);
-	assert.equal(parseCompactionProgress({ active: true, ...VIEW, percent: Number.NaN }), undefined);
-	assert.equal(parseCompactionProgress({ active: true, ...VIEW, tokensBefore: "86000" }), undefined);
-	assert.equal(parseCompactionProgress({ active: true, ...VIEW, elapsedMs: "16.3" }), undefined);
-	assert.equal(parseCompactionProgress(undefined), undefined);
-	assert.equal(parseCompactionProgress(null), undefined);
-	assert.equal(parseCompactionProgress([{ active: true, ...VIEW }]), undefined);
-	assert.equal(parseCompactionProgress("active"), undefined);
+test("the settings preview uses representative compaction progress", () => {
+	const preview = compactionPreviewView();
+	assert.equal(stripAnsi(preview.bar), "▋".repeat(7) + "░".repeat(13));
+	assert.equal(preview.percent, 47);
+	assert.equal(preview.tokensBefore, 86_000);
+	assert.equal(preview.contextWindow, 131_072);
+	assert.equal(preview.elapsedMs, 16_300);
 });
 
 test("embedCompactionProgress resolves on by default and off when set", () => {

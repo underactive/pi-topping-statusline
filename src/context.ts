@@ -77,8 +77,7 @@ interface ContextEstimate {
 /**
  * pi's own estimate of the context after a compaction: the summary plus the
  * kept and later messages, sized by its per-message estimator. This is the
- * figure pi hands compaction callers as estimatedTokensAfter, so it agrees with
- * what pi-topping-compact reports in its result.
+ * figure pi hands compaction callers as estimatedTokensAfter.
  */
 export function estimateCompactedContextTokens(sessionManager: ExtensionContext["sessionManager"]): number {
 	let tokens = 0;

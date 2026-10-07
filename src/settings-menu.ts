@@ -5,7 +5,7 @@
  */
 import type { ExtensionAPI, ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
 import { makeBoxPainters, renderBoxRow } from "./box.js";
-import { COMPACTION_FIT_PROBE } from "./compaction-embed.js";
+import { compactionPreviewView } from "./compaction-embed.js";
 import type { SegmentContextBuilder } from "./context.js";
 import { buildStatusLine } from "./layout.js";
 import { showMenu, type MenuSection, type MenuValue, type PreviewResult } from "./menu.js";
@@ -336,12 +336,11 @@ class StatusLinePreview {
 				{ col: 3, row: 0 },
 				{ workingEllipsis: compactionDemo ? "…" : "" },
 			);
-			// Focusing the compaction row demos the bottom bar hosting
-			// pi-topping-compact's progress, while the setting is on.
+			// Focusing the compaction row demos the bottom bar hosting a compaction's progress, while the setting is on.
 			const progressDemo = activeItemId === "embedCompactionProgress" && effective.embedCompactionProgress;
 			const bottom = buildStatusLine(
 				barWidth,
-				progressDemo ? { ...ctx, compaction: COMPACTION_FIT_PROBE } : ctx,
+				progressDemo ? { ...ctx, compaction: compactionPreviewView() } : ctx,
 				effective,
 				painters.gapColor,
 				{

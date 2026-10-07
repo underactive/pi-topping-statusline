@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Track compaction progress from pi's own `session_before_compact`, `session_compact`, and `session_compact_failed` events and draw the phosphor bar in the statusline itself, so the bottom-right group hosts the progress of every compaction (`/compact`, threshold, overflow, or extension-triggered) without pi-topping-compact
+- The summarized share is now a time-based estimate that eases toward 86% until pi completes
+- Hold the drained bar and `100% summarized` for 900ms when a compaction completes, then hand back to pi's stats and the context graph
+
+### Removed
+
+- Remove the `pi-topping-statusline:compaction-progress-embedded` and `pi-topping-compact:compaction-progress` event-bus channels and the broadcast parser. Uninstall pi-topping-compact: if it is still installed, it shows its own above-editor widget in addition to the bar
+
 ## [0.2.6]
 
 ### Changed
