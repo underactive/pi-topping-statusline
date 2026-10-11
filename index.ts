@@ -5,9 +5,10 @@
  * packages/coding-agent/src/modes/components/status-line/, MIT). OMP mounts
  * the bar via its editor's setTopBorderProvider. Upstream pi's editor draws
  * plain ─── rows with no corners or sides, so the wrapper re-renders the inner
- * editor 6 columns narrower and rebuilds a full rounded box around its rows:
- * the bar in ╭─ … ─╮, │ sides on every text row, and a dedicated ╰─ … ─╯
- * bottom border carrying configurable left/right segment groups. Upstream's
+ * editor 6 columns narrower and rebuilds a full box around its rows in the
+ * configured border style (╭─ … ─╮ when rounded): the bar in the top border, side
+ * glyphs on every text row, and a dedicated bottom border carrying configurable
+ * left/right segment groups. Upstream's
  * own bottom border row is dropped.
  *
  * ctx.ui.setEditorComponent is a single last-writer-wins slot that other

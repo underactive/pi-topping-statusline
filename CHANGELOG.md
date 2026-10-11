@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Track compaction progress from pi's own `session_before_compact`, `session_compact`, and `session_compact_failed` events and draw the phosphor bar in the statusline itself, so the bottom-right group hosts the progress of every compaction (`/compact`, threshold, overflow, or extension-triggered) without pi-topping-compact
+- Track compaction progress from pi's own `session_before_compact`, `session_compact`, and `session_compact_failed` events and draw the phosphor bar in the statusline itself, so the bottom-right group hosts pi's built-in summarizer (`/compact`, threshold, overflow, or extension-triggered compactions that use it) without pi-topping-compact. Pi runs `session_before_compact` handlers in sequence, so if an earlier-loaded extension computes the summary in its own handler, the bar starts only after that handler returns
 - The summarized share is now a time-based estimate that eases toward 86% until pi completes
 - Hold the drained bar and `100% summarized` for 900ms when a compaction completes, then hand back to pi's stats and the context graph
 - Tested against pi 1.1.0

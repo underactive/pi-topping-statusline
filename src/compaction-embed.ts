@@ -1,6 +1,5 @@
 /**
- * The bottom bar hosts the progress of every compaction that pi runs.
- * CompactionMonitor tracks progress from pi's session events.
+ * Whether the bottom bar can host compaction progress, and the sample view the settings preview shows.
  */
 import { renderCompactionBar } from "./compaction-bar.js";
 import { COMPACTION_STAND_INS } from "./settings.js";
@@ -15,11 +14,11 @@ export function hostsCompactionProgress(effective: EffectiveStatusLineSettings):
 }
 
 /**
- * A representative hosted compaction (66% usage, 35% still to go, so 47% summarized), shown in
- * the settings preview. Real figures vary in digit count, but this stands in for a typical session
- * without committing to a worst case that would starve the rest of the bar.
+ * A representative hosted compaction (86K of a 131K window is 66% usage; at 47% summarized the
+ * bar still holds 35% of the window), shown in the settings preview. Real figures vary in digit
+ * count, but this stands in for a typical session without committing to a worst case that would
+ * starve the rest of the bar.
  * The bar renders when this function is called, so it uses pi's current color depth.
- * The settings preview is its only user.
  */
 export function compactionPreviewView(): CompactionProgressView {
 	return {

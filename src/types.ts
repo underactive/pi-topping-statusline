@@ -179,14 +179,17 @@ export interface SegmentContext {
 	feedDisplayState?: Record<string, FeedDisplayState>;
 }
 
-/** One frame of a running compaction from CompactionMonitor: the bar, pre-rendered by compaction-bar.ts with fg-only resets, plus the figures it was drawn from. */
+/** One frame of a compaction from CompactionMonitor, from its start through the completion hold. */
 export interface CompactionProgressView {
-	/** The 20-cell bar, pre-rendered by compaction-bar.ts with fg-only resets. */
+	/** The 20-cell bar, pre-rendered by compaction-bar.ts with fg/attribute-only resets (39/22, never 0). Its fill is the context share not yet summarized, so it drains as `percent` rises. */
 	bar: string;
 	/** How far the compaction has progressed, 0..100 (a time-based estimate until pi completes). */
 	percent: number;
+	/** Context tokens being compacted, from pi's compaction preparation. */
 	tokensBefore: number;
+	/** The model's context window; 0 when unknown. */
 	contextWindow: number;
+	/** Time since the compaction started, frozen at completion. */
 	elapsedMs: number;
 }
 

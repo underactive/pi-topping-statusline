@@ -18,7 +18,6 @@ import { FADE_SHADE_COUNT } from "./theme.js";
 import type { FeedDisplayState, SegmentContext, SegmentIncludes, StatusLineSegmentOptions, TokenRateDisplay } from "./types.js";
 import { feedKey } from "./utils.js";
 
-const GIT_STATUS_TTL_MS = 1_000;
 const BRANCH_POLL_TTL_MS = 5_000;
 const EXEC_TIMEOUT_MS = 2_000;
 
@@ -31,12 +30,6 @@ export const FEED_FADE_MS = 500;
 
 /** Prototype-less map — feed keys are publisher-supplied customTypes. */
 const emptyFeedData = (): Record<string, unknown> => Object.create(null);
-
-interface GitStatusCounts {
-	staged: number;
-	unstaged: number;
-	untracked: number;
-}
 
 interface RepoInfo {
 	gitDir: string;
@@ -87,22 +80,6 @@ export function estimateCompactedContextTokens(sessionManager: ExtensionContext[
 	return tokens;
 }
 
-function parseGitStatus(porcelain: string): GitStatusCounts {
-	let staged = 0;
-	let unstaged = 0;
-	let untracked = 0;
-	for (const line of porcelain.split("\n")) {
-		if (line.length < 2) continue;
-		if (line.startsWith("??")) {
-			untracked++;
-			continue;
-		}
-		if (line[0] !== " ") staged++;
-		if (line[1] !== " ") unstaged++;
-	}
-	return { staged, unstaged, untracked };
-}
-
 export class SegmentContextBuilder {
 	#pi: ExtensionAPI;
 	#ctx: ExtensionContext | undefined;
@@ -120,10 +97,6 @@ export class SegmentContextBuilder {
 	#headWatcher: fs.FSWatcher | undefined;
 	#watcherOk = false;
 
-	#gitStatus: GitStatusCounts | null = null;
-	#gitStatusFetchedAt = 0;
-	#gitStatusInFlight = false;
-
 	#pr: { number: number; url: string } | null = null;
 	#prBranch: string | null | undefined = undefined;
 	#prInFlight = false;
@@ -133,7 +106,7 @@ export class SegmentContextBuilder {
 
 	#feedData: Record<string, unknown> = emptyFeedData();
 	#feedsScannedAt = 0;
-	#feedsScannedRef: readonly string[] | undefined;
+	#feedsScannedKey: string | undefined;
 	#runStartedAt = 0;
 	#feedTracking = new Map<string, FeedTracking>();
 	#feedTimer: ReturnType<typeof setTimeout> | undefined;
@@ -166,7 +139,7 @@ export class SegmentContextBuilder {
 		this.#runStartedAt = Date.now();
 		this.#feedData = emptyFeedData();
 		this.#feedsScannedAt = 0;
-		this.#feedsScannedRef = undefined;
+		this.#feedsScannedKey = undefined;
 		this.#clearFeedLifecycle();
 		this.#contextEstimate = undefined;
 		if (this.#repoCwd !== ctx.cwd) {
@@ -200,8 +173,6 @@ export class SegmentContextBuilder {
 		this.#repo = undefined;
 		this.#branch = null;
 		this.#branchFetchedAt = 0;
-		this.#gitStatus = null;
-		this.#gitStatusFetchedAt = 0;
 		this.#pr = null;
 		this.#prBranch = undefined;
 		this.#worktree = null;
@@ -265,7 +236,6 @@ export class SegmentContextBuilder {
 			const watcher = fs.watch(headPath, () => {
 				if (this.#headWatcher !== watcher) return;
 				this.#branchFetchedAt = 0;
-				this.#gitStatusFetchedAt = 0;
 				void this.#refreshBranch();
 			});
 			watcher.on("error", () => {
@@ -298,26 +268,6 @@ export class SegmentContextBuilder {
 			}
 		} finally {
 			this.#branchInFlight = false;
-		}
-	}
-
-	async #refreshGitStatus(): Promise<void> {
-		const cwd = this.#repoCwd;
-		if (!cwd || !this.#repo || this.#gitStatusInFlight) return;
-		this.#gitStatusInFlight = true;
-		try {
-			const out = await this.#exec("git", ["status", "--porcelain"], cwd);
-			if (this.#repoCwd !== cwd) return;
-			this.#gitStatusFetchedAt = Date.now();
-			const next = out === undefined ? null : parseGitStatus(out);
-			const changed =
-				next?.staged !== this.#gitStatus?.staged ||
-				next?.unstaged !== this.#gitStatus?.unstaged ||
-				next?.untracked !== this.#gitStatus?.untracked;
-			this.#gitStatus = next;
-			if (changed) this.#requestRender();
-		} finally {
-			this.#gitStatusInFlight = false;
 		}
 	}
 
@@ -485,17 +435,15 @@ export class SegmentContextBuilder {
 		if (include.git || include.pr) {
 			const branchStale = now - this.#branchFetchedAt > BRANCH_POLL_TTL_MS;
 			if (this.#repo && (branchStale && !this.#watcherOk)) void this.#refreshBranch();
-			if (include.git && this.#repo && now - this.#gitStatusFetchedAt > GIT_STATUS_TTL_MS) {
-				void this.#refreshGitStatus();
-			}
 			if (include.pr) void this.#refreshPr();
 		}
 
 		let feedDisplayState: Record<string, FeedDisplayState> | undefined;
 		if (include.feeds.length > 0) {
 			// Editing the subscription list mid-session must not wait out the TTL.
-			if (include.feeds !== this.#feedsScannedRef || now - this.#feedsScannedAt > FEED_TTL_MS) {
-				this.#feedsScannedRef = include.feeds;
+			const feedsKey = include.feeds.join("\0");
+			if (feedsKey !== this.#feedsScannedKey || now - this.#feedsScannedAt > FEED_TTL_MS) {
+				this.#feedsScannedKey = feedsKey;
 				this.#refreshFeeds(include.feeds, now);
 			}
 			feedDisplayState = this.#syncFeedTracking(options.feeds, now);
@@ -526,7 +474,7 @@ export class SegmentContextBuilder {
 			contextEstimated: estimated,
 			git: {
 				branch: include.git || include.pr ? this.#branch : null,
-				status: include.git ? this.#gitStatus : null,
+				status: null,
 				pr: include.pr ? this.#pr : null,
 			},
 			worktree: this.#worktree,

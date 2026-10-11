@@ -354,7 +354,7 @@ test("renders share one scan per TTL, and attach forces a fresh one", async () =
 	await sleep(3);
 	entries.push(feedEntry({ savedUsd: 1.5 }));
 
-	for (let i = 0; i < 50; i++) builder.build(80, OPTIONS, INCLUDE, undefined);
+	for (let i = 0; i < 50; i++) builder.build(80, OPTIONS, { ...INCLUDE, feeds: [...INCLUDE.feeds] }, undefined);
 	assert.equal(scans, 1, `expected 1 scan across 50 renders, got ${scans}`);
 
 	builder.attach(fakeCtx(entries, () => scans++));

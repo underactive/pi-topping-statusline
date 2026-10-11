@@ -355,7 +355,10 @@ const contextGraphSegment: StatusLineSegment = {
 
 const clampPercent = (percent: number): number => Math.round(Math.min(100, Math.max(0, percent)));
 
-/** "57% summarized · 16.3s": how much of the context has been summarized so far, and the time taken. */
+/**
+ * "47% summarized · 16.3s": the estimated share summarized so far (time-based until pi completes),
+ * and the time taken.
+ */
 export function formatCompactionInfo(view: CompactionProgressView): string {
 	const elapsed = `${(Math.max(0, view.elapsedMs) / 1000).toFixed(1)}s`;
 	return `${clampPercent(view.percent)}% summarized${theme.sep.dot}${elapsed}`;
@@ -386,7 +389,7 @@ const compactionInfoSegment: StatusLineSegment = {
 /**
  * The compaction bar, standing in for the context graph while its progress is
  * hosted, under the graph's own bar and stats toggles. The bar arrives
- * pre-rendered with fg-only resets, so it is passed through verbatim.
+ * pre-rendered with fg/attribute-only resets, so it is passed through verbatim.
  */
 const compactionGraphSegment: StatusLineSegment = {
 	id: "compaction_graph",

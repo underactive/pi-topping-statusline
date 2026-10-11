@@ -1,6 +1,7 @@
 /**
  * Shared box-chrome painting for the live editor box (index.ts) and the
- * settings-menu preview, so the 3/2/+2 row geometry has one definition.
+ * settings-menu preview, so the 6-cell border-row chrome (corner + 2-cell run,
+ * bar, pad + 2-cell run + corner) has one definition.
  *
  * Gradient mode colors each glyph by its perimeter-walk position; otherwise
  * the caller's flat painter wraps whole runs in one escape sequence, which
@@ -33,23 +34,6 @@ export function makeBoxPainters(opts: {
 	const perimeter = perimeterLength(width, bottomIdx);
 	const paint = (row: number, col: number, ch: string): string =>
 		colorizerOn ? colorizer.colorChar(ch, perimeterPosition(row, col, width, bottomIdx), perimeter) : flat(ch);
-	const horizRun = (row: number, startCol: number, count: number): string => {
-		if (!colorizerOn) return flat(box.horizontal.repeat(count));
-		let out = "";
-		let runPrefix: string | undefined;
-		let runChars = "";
-		for (let k = 0; k < count; k++) {
-			const prefix = colorizer.prefix(perimeterPosition(row, startCol + k, width, bottomIdx), perimeter);
-			if (runPrefix !== undefined && prefix !== runPrefix) {
-				out += `${runPrefix}${runChars}\x1b[39m`;
-				runChars = "";
-			}
-			runPrefix = prefix;
-			runChars += box.horizontal;
-		}
-		if (runPrefix !== undefined) out += `${runPrefix}${runChars}\x1b[39m`;
-		return out;
-	};
 	const gapColor = (str: string, startCol: number, row: number): string => {
 		if (!colorizerOn) return flat(str);
 		let out = "";
@@ -68,6 +52,8 @@ export function makeBoxPainters(opts: {
 		if (runPrefix !== undefined) out += `${runPrefix}${runChars}\x1b[39m`;
 		return out;
 	};
+	const horizRun = (row: number, startCol: number, count: number): string =>
+		gapColor(box.horizontal.repeat(count), startCol, row);
 	return { paint, horizRun, gapColor };
 }
 

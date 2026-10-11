@@ -7,9 +7,9 @@
 import { formatContextUsage, getContextUsageLevel, getContextUsageThemeColor } from "./context-thresholds.js";
 import { theme } from "./theme.js";
 
-const CELLS = 20;
-const FILLED = "\u258b";
-const TROUGH = "\u2591";
+export const CELLS = 20;
+export const FILLED = "\u258b";
+export const TROUGH = "\u2591";
 
 const cellColor = (percent: number, contextWindow: number): string =>
 	theme.getFgAnsi(getContextUsageThemeColor(getContextUsageLevel(percent, contextWindow)));

@@ -1,12 +1,9 @@
 /**
  * The compaction bar, drawn with the same cells and trough glyphs as the context graph.
  */
-import { detectColorMode, rgbToFgAnsi } from "./theme.js";
+import { CELLS, FILLED, TROUGH } from "./context-graph.js";
+import { detectColorMode, mixRgb, rgbToFgAnsi } from "./theme.js";
 import type { ColorMode } from "./theme.js";
-
-const CELLS = 20;
-const FILLED = "\u258b";
-const TROUGH = "\u2591";
 
 const COMET_SWEEP_MS = 2_000;
 const COMET_START_PADDING_CELLS = 2;
@@ -18,19 +15,6 @@ const DEEP_GREEN: readonly [number, number, number] = [11, 61, 32];
 const BASE_GREEN: readonly [number, number, number] = [114, 241, 184];
 const LIGHT_GREEN: readonly [number, number, number] = [185, 248, 217];
 const TROUGH_GREEN: readonly [number, number, number] = [38, 100, 70];
-
-function mixRgb(
-	from: readonly [number, number, number],
-	to: readonly [number, number, number],
-	amount: number,
-): [number, number, number] {
-	const clamped = Math.min(1, Math.max(0, amount));
-	return [
-		Math.round(from[0] + (to[0] - from[0]) * clamped),
-		Math.round(from[1] + (to[1] - from[1]) * clamped),
-		Math.round(from[2] + (to[2] - from[2]) * clamped),
-	];
-}
 
 function cosineFalloff(distance: number, halfWidth: number): number {
 	if (distance >= halfWidth) return 0;

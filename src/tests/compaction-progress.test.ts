@@ -51,7 +51,7 @@ test("monitor tracks starts, elapsed time and context usage", () => {
 	monitor.disable();
 });
 
-test("context window falls back to the model and progress stays monotonic", () => {
+test("context window falls back to the model and progress advances with elapsed time", () => {
 	const { pi, emit } = fakePi();
 	let now = 10_000;
 	const monitor = new CompactionMonitor(() => {}, { now: () => now });
@@ -64,8 +64,7 @@ test("context window falls back to the model and progress stays monotonic", () =
 	now += 15_000;
 	const later = monitor.view();
 	assert.ok(later);
-	now -= 10_000;
-	assert.equal(monitor.view()?.percent, later.percent);
+	assert.ok(later.percent > first.percent);
 	monitor.disable();
 });
 

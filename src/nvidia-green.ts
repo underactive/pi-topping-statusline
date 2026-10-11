@@ -1,8 +1,8 @@
 /** Provider-specific NVIDIA green border colorizer for Switchyard. */
-import { rgbToHex, wrapDeg, type BorderColorizer } from "./rainbow.js";
-import { detectColorMode, hexToFgAnsi, parseHex, type ColorMode } from "./theme.js";
+import { wrapDeg, type BorderColorizer } from "./rainbow.js";
+import { detectColorMode, mixRgb, parseHex, rgbToFgAnsi, type ColorMode } from "./theme.js";
 
-export const SWITCHYARD_PROVIDER = "switchyard";
+const SWITCHYARD_PROVIDER = "switchyard";
 export const NVIDIA_GREEN_HEX = "#84c51a";
 export const NVIDIA_GREEN_DARK_HEX = "#0b3d20";
 const GREEN_SHADE_COUNT = 256;
@@ -27,12 +27,8 @@ function buildAnsiByShade(mode: ColorMode): string[] {
 	const ansiByShade: string[] = [];
 	for (let i = 0; i < GREEN_SHADE_COUNT; i++) {
 		const progress = i / (GREEN_SHADE_COUNT - 1);
-		const rgb: [number, number, number] = [
-			Math.round(dark[0] + (bright[0] - dark[0]) * progress),
-			Math.round(dark[1] + (bright[1] - dark[1]) * progress),
-			Math.round(dark[2] + (bright[2] - dark[2]) * progress),
-		];
-		ansiByShade.push(hexToFgAnsi(rgbToHex(rgb), mode));
+		const rgb = mixRgb(dark, bright, progress);
+		ansiByShade.push(rgbToFgAnsi(...rgb, mode));
 	}
 
 	ansiByShadeByMode.set(mode, ansiByShade);

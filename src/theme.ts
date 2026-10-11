@@ -284,6 +284,19 @@ function rgbTo256(r: number, g: number, b: number): number {
 	return 16 + 36 * scale(r) + 6 * scale(g) + scale(b);
 }
 
+export function mixRgb(
+	from: readonly [number, number, number],
+	to: readonly [number, number, number],
+	amount: number,
+): [number, number, number] {
+	const clamped = Math.min(1, Math.max(0, amount));
+	return [
+		Math.round(from[0] + (to[0] - from[0]) * clamped),
+		Math.round(from[1] + (to[1] - from[1]) * clamped),
+		Math.round(from[2] + (to[2] - from[2]) * clamped),
+	];
+}
+
 export function rgbToFgAnsi(r: number, g: number, b: number, mode: ColorMode): string {
 	return mode === "truecolor" ? `\x1b[38;2;${r};${g};${b}m` : `\x1b[38;5;${rgbTo256(r, g, b)}m`;
 }

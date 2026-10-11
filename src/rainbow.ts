@@ -12,7 +12,7 @@
  * (renderBoxed in index.ts) or construct a fresh instance with a phase
  * derived from elapsed time (the settings preview).
  */
-import { detectColorMode, hexToFgAnsi, type ColorMode } from "./theme.js";
+import { detectColorMode, rgbToFgAnsi, type ColorMode } from "./theme.js";
 
 /** Frame cadence of the sweep (also the settings-preview refresh delay). */
 export const RAINBOW_FRAME_MS = 50;
@@ -23,6 +23,7 @@ export const RAINBOW_DEG_PER_FRAME = (360 * RAINBOW_FRAME_MS) / RAINBOW_CYCLE_MS
 
 const SATURATION = 1;
 const LIGHTNESS = 0.62;
+const ansiByHueByMode = new Map<ColorMode, string[]>();
 
 /** Normalize a degree value into the [0, 360) range. */
 export const wrapDeg = (deg: number): number => ((deg % 360) + 360) % 360;
@@ -80,8 +81,6 @@ export interface BorderColorizer {
  */
 export class RainbowBorder implements BorderColorizer {
 	#phaseDeg: number;
-	#mode: ColorMode | undefined;
-	readonly #ansiByHue: string[] = [];
 
 	constructor(phaseDeg = 0) {
 		this.#phaseDeg = wrapDeg(phaseDeg);
@@ -99,17 +98,17 @@ export class RainbowBorder implements BorderColorizer {
 
 	prefix(perimeterPos: number, perimeter: number): string {
 		const mode = detectColorMode();
-		if (mode !== this.#mode) {
-			this.#mode = mode;
-			this.#ansiByHue.length = 0;
+		let ansiByHue = ansiByHueByMode.get(mode);
+		if (ansiByHue === undefined) {
+			ansiByHue = [];
+			ansiByHueByMode.set(mode, ansiByHue);
 		}
 		const hue = (this.#phaseDeg + (360 * perimeterPos) / perimeter) % 360;
 		const bucket = Math.round(hue) % 360;
-		let ansi = this.#ansiByHue[bucket];
+		let ansi = ansiByHue[bucket];
 		if (ansi === undefined) {
-			const hex = rgbToHex(hslToRgb(bucket, SATURATION, LIGHTNESS));
-			ansi = hexToFgAnsi(hex, mode);
-			this.#ansiByHue[bucket] = ansi;
+			ansi = rgbToFgAnsi(...hslToRgb(bucket, SATURATION, LIGHTNESS), mode);
+			ansiByHue[bucket] = ansi;
 		}
 		return ansi;
 	}

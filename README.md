@@ -122,18 +122,25 @@ editor through pi, so it applies immediately, even mid-response. Only the status
 editor opts in: when another extension owns the editor slot and is wrapped, pi keeps its
 standalone status row.
 
-**Embed compaction progress** (on by default) hosts the progress of every compaction that pi
-runs: `/compact`, threshold, overflow, and compactions that extensions start. The phosphor bar
-takes the place of the context graph. It is followed by `86K/131K (66%)`. `57% summarized ·
-16.3s` takes the place of pi's stats. The bar and its label follow the Context bar and Context
-stats toggles. The summarized share is a time-based estimate. It starts at 10% and eases toward
-86%, because pi does not expose the summarizer's progress. It shows 100% only when pi completes.
-At completion, the drained bar and `100% summarized` hold for a moment. Then pi's stats and the
+**Embed compaction progress** (on by default) tracks pi's built-in summarizer for `/compact`,
+threshold, overflow, and extension-triggered compactions that use it. Pi runs
+`session_before_compact` handlers in sequence, so if an earlier-loaded extension computes the
+summary in its own handler, the bar appears only after that handler returns. In the bottom-right
+group, a green progress bar takes the place of the context graph, followed
+by the tokens being compacted against the context window, `86K/131K (66%)`. The bar starts just
+below that usage and drains as the summary progresses. In place of pi's stats, `47% summarized ·
+16.3s` shows the share summarized so far and the time elapsed. The bar and its label follow the
+Context bar and Context stats toggles. The summarized share is a time-based estimate: pi does not
+expose the summarizer's progress, so it starts at 10%, eases up to 86%, and reaches 100% only
+when pi completes. At completion, the empty bar and `100% summarized` hold for a moment. Then pi's stats and the
 context graph return, and the graph shows the compacted context as a `~` estimate until the next
-response. If the compaction fails or is cancelled, the usual segments return at once. With the
-setting off, with Pi stats, Context bar and Context stats all off, or with a terminal too narrow
-for the stand-ins, the bottom bar does not change. pi's own compaction indicator still shows.
-Focusing the setting's row in the settings preview shows the bottom bar mid-compaction.
+response. If the compaction fails or is cancelled, the usual segments return at once on pi 0.84.3
+and later; earlier hosts keep the bar until the next prompt. The bottom bar does not change when
+the setting is off, when Pi stats, Context bar, and Context
+stats are all off, or when the terminal is too narrow for the stand-ins. In every case pi's own
+compaction indicator still shows, in its own row or, with Embed status spinners on, in the top
+bar. While the setting is on, focusing its row in the settings preview shows the bottom bar
+mid-compaction.
 
 ## Segments
 
@@ -155,8 +162,9 @@ vanish for that stretch, `context_graph` shows pi's own estimate of the compacte
 summary plus the kept messages sized by pi's estimator, marked with `~` (`~9.2%/131K`). pi's
 measured figure replaces it after the next response.
 
-When the terminal narrows: right segments drop first, then the path shrinks (to ~8 cells),
-then left segments drop end-first — the path is always the last to go.
+When the terminal narrows: right segments drop first, then an embedded status is truncated
+(the model details after it drop only if the status would otherwise vanish), then the path
+shrinks (to ~8 cells), then left segments drop end-first — the path is always the last to go.
 
 ## Feeds
 
@@ -253,6 +261,7 @@ settings TUI.
 
 - Other editor-replacing extensions are wrapped rather than raced — their editor renders inside this box — but ones that draw their own bar or chrome will clash visually.
 - The palette is OMP's **dark** theme; light terminal themes will look off.
+- pi-topping-compact is no longer needed: the bar tracks compactions from pi's own events. If it is still installed, its above-editor widget shows alongside the bar, so uninstall it.
 
 ## Development
 
