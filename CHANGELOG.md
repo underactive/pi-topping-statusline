@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6]
+
 ### Changed
 
 - Track compaction progress from pi's own `session_before_compact`, `session_compact`, and `session_compact_failed` events and draw the phosphor bar in the statusline itself, so the bottom-right group hosts pi's built-in summarizer (`/compact`, threshold, overflow, or extension-triggered compactions that use it) without pi-topping-compact. Pi runs `session_before_compact` handlers in sequence, so if an earlier-loaded extension computes the summary in its own handler, the bar starts only after that handler returns
@@ -15,16 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tested against pi 1.1.0
 - Bump `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`, and `@earendil-works/pi-tui` devDependencies to 1.1.0
 
+### Fixed
+
+- Key feed subscriptions by their join key instead of object identity, so rebuilding the subscription list with the same entries no longer triggers a fresh scan before the TTL expires
+
 ### Removed
 
 - Remove the `pi-topping-statusline:compaction-progress-embedded` and `pi-topping-compact:compaction-progress` event-bus channels and the broadcast parser. Uninstall pi-topping-compact: if it is still installed, it shows its own above-editor widget in addition to the bar
-
-## [0.2.6]
-
-### Changed
-
-- Tested against pi 1.0.3
-- Bump `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`, and `@earendil-works/pi-tui` devDependencies to 1.0.3
 
 ## [0.2.5]
 
