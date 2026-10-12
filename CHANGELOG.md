@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Restore changed-file counts (`*unstaged +staged ?untracked`) after the git branch name
+
 ## [0.2.6]
 
 ### Changed
