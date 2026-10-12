@@ -7,11 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- Restore changed-file counts (`*unstaged +staged ?untracked`) after the git branch name
-
-## [0.2.6]
+## [0.2.7]
 
 ### Changed
 
@@ -24,10 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Key feed subscriptions by their join key instead of object identity, so rebuilding the subscription list with the same entries no longer triggers a fresh scan before the TTL expires
+- Restore changed-file counts (`*unstaged +staged ?untracked`) after the git branch name
 
 ### Removed
 
 - Remove the `pi-topping-statusline:compaction-progress-embedded` and `pi-topping-compact:compaction-progress` event-bus channels and the broadcast parser. Uninstall pi-topping-compact: if it is still installed, it shows its own above-editor widget in addition to the bar
+
+## [0.2.6]
+
+### Changed
+
+- Tested against pi 1.0.3
+- Bump `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`, and `@earendil-works/pi-tui` devDependencies to 1.0.3
 
 ## [0.2.5]
 
