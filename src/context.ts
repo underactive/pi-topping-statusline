@@ -14,6 +14,7 @@ import {
 	type ExtensionAPI,
 	type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import { getCacheHitPercent, parseCacheHitStat, stripCacheHitStat } from "./cache-hit.js";
 import { FADE_SHADE_COUNT } from "./theme.js";
 import type { FeedDisplayState, SegmentContext, SegmentIncludes, StatusLineSegmentOptions, TokenRateDisplay } from "./types.js";
 import { feedKey } from "./utils.js";
@@ -24,6 +25,8 @@ const EXEC_TIMEOUT_MS = 2_000;
 
 /** getEntries() filters and copies the whole session, so rescans are rate-limited. */
 const FEED_TTL_MS = 2_000;
+/** The fallback cache-hit rate reads the same append-only session data as Pi's footer. */
+const CACHE_HIT_TTL_MS = 250;
 /** Unchanged feed values remain fully visible for five minutes. */
 export const FEED_HOLD_MS = 5 * 60 * 1_000;
 /** Match the existing token-rate fade cadence. */
@@ -141,6 +144,8 @@ export class SegmentContextBuilder {
 	#feedTimerAt: number | undefined;
 
 	#contextEstimate: ContextEstimate | undefined;
+	#cacheHitPercent: number | null = null;
+	#cacheHitFetchedAt = 0;
 
 	constructor(pi: ExtensionAPI) {
 		this.#pi = pi;
@@ -170,6 +175,8 @@ export class SegmentContextBuilder {
 		this.#feedsScannedKey = undefined;
 		this.#clearFeedLifecycle();
 		this.#contextEstimate = undefined;
+		this.#cacheHitPercent = null;
+		this.#cacheHitFetchedAt = 0;
 		if (this.#repoCwd !== ctx.cwd) {
 			this.#resetGitState();
 			this.#repoCwd = ctx.cwd;
@@ -472,6 +479,13 @@ export class SegmentContextBuilder {
 		}
 	}
 
+	#deriveCacheHitPercent(ctx: ExtensionContext | undefined, now: number): number | null {
+		if (!ctx || now - this.#cacheHitFetchedAt < CACHE_HIT_TTL_MS) return this.#cacheHitPercent;
+		this.#cacheHitFetchedAt = now;
+		this.#cacheHitPercent = getCacheHitPercent(ctx.sessionManager.getEntries());
+		return this.#cacheHitPercent;
+	}
+
 	// ── snapshot ─────────────────────────────────────────────────────────────
 
 	build(
@@ -515,6 +529,13 @@ export class SegmentContextBuilder {
 			: undefined;
 
 		const { contextWindow, tokens, percent: contextPercent, estimated } = this.#deriveContextUsage(ctx);
+		// Pi's own CH figure wins so the graph always agrees with the stats beside it;
+		// the derived rate covers hosts or widths where pi's stats line is unavailable.
+		const piStats = include.piStats || include.cacheHit === true ? this.#piStatsProvider?.(width) : undefined;
+		const cacheHitPercent =
+			include.cacheHit === true ? (parseCacheHitStat(piStats) ?? this.#deriveCacheHitPercent(ctx, now)) : null;
+		const shownPiStats =
+			include.piStats && include.cacheHit === true && cacheHitPercent !== null ? stripCacheHitStat(piStats) : piStats;
 
 		return {
 			options,
@@ -526,6 +547,7 @@ export class SegmentContextBuilder {
 			contextTokens: tokens,
 			contextWindow,
 			contextEstimated: estimated,
+			cacheHitPercent,
 			git: {
 				branch: include.git || include.pr ? this.#branch : null,
 				status: include.git ? this.#gitStatus : null,
@@ -533,7 +555,7 @@ export class SegmentContextBuilder {
 			},
 			worktree: this.#worktree,
 			scrollHint,
-			piStats: include.piStats ? this.#piStatsProvider?.(width) : undefined,
+			piStats: include.piStats ? shownPiStats : undefined,
 			tokenRate: include.tokenRate ? this.#tokenRateProvider?.() : undefined,
 			feedData: include.feeds.length > 0 ? this.#feedData : undefined,
 			feedDisplayState,

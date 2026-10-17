@@ -5,6 +5,7 @@
  */
 import type { ExtensionAPI, ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
 import { makeBoxPainters, renderBoxRow } from "./box.js";
+import { CACHE_HIT_MAX_CELLS, CACHE_HIT_MIN_CELLS, clampCacheHitCells, stripCacheHitStat } from "./cache-hit.js";
 import { compactionPreviewView } from "./compaction-embed.js";
 import type { SegmentContextBuilder } from "./context.js";
 import { buildStatusLine } from "./layout.js";
@@ -42,6 +43,12 @@ const SYMBOL_FROM_LABEL: Record<string, SymbolPreset> = Object.fromEntries(
 	(Object.entries(SYMBOL_LABELS) as [SymbolPreset, string][]).map(([preset, label]) => [label, preset]),
 );
 
+/** Menu values for the CH bar length: the menu cycles strings, so each size is its decimal text. */
+const CACHE_HIT_CELL_VALUES: readonly string[] = Array.from(
+	{ length: CACHE_HIT_MAX_CELLS - CACHE_HIT_MIN_CELLS + 1 },
+	(_, i) => String(CACHE_HIT_MIN_CELLS + i),
+);
+
 const SECTION_TITLES = [
 	"Top Left Segment Group",
 	"Top Right Segment Group",
@@ -66,6 +73,7 @@ const SEGMENT_ROWS: readonly {
 	{ id: "feeds", label: "Feeds", section: "Bottom Right Segment Group" },
 	{ id: "tokenRate", label: "Token rate", section: "Bottom Right Segment Group" },
 	{ id: "piStats", label: "Pi stats", section: "Bottom Right Segment Group" },
+	{ id: "cacheHitBar", label: "Cache hit bar", section: "Bottom Right Segment Group" },
 	{ id: "contextBar", label: "Context bar", section: "Bottom Right Segment Group" },
 	{ id: "contextStats", label: "Context stats", section: "Bottom Right Segment Group" },
 	{ id: "scrollHint", label: "Scroll hint", section: "Bottom Left Segment Group" },
@@ -133,7 +141,7 @@ function feedsFromValues(values: Record<string, MenuValue>): StatusLineFeed[] {
 	return feedPairsFromValues(values).map(({ feed }) => feed);
 }
 
-function buildSections(settings: StatusLineSettings): MenuSection[] {
+export function buildSections(settings: StatusLineSettings): MenuSection[] {
 	const seg = { ...DEFAULT_SEGMENTS, ...settings.segments };
 	const global: MenuSection = {
 		title: "Global",
@@ -188,17 +196,26 @@ function buildSections(settings: StatusLineSettings): MenuSection[] {
 		global,
 		...SECTION_TITLES.map(title => ({
 			title,
-			items: SEGMENT_ROWS.filter(row => row.section === title).map(row => ({
-				id: row.id,
-				label: row.label,
-				value: seg[row.id],
-			})),
+			items: SEGMENT_ROWS.filter(row => row.section === title).flatMap(row => {
+				const item = { id: row.id, label: row.label, value: seg[row.id] };
+				// The bar's length sits right under its on/off toggle.
+				if (row.id !== "cacheHitBar") return [item];
+				return [
+					item,
+					{
+						id: "cacheHitBarSegments",
+						label: "CH bar segments",
+						value: String(clampCacheHitCells(settings.cacheHitBarSegments)),
+						cycleValues: CACHE_HIT_CELL_VALUES,
+					},
+				];
+			}),
 		})),
 		feedSection(pairsFromFeeds(settings.feeds ? sanitizeFeeds(settings.feeds) : DEFAULT_FEEDS)),
 	];
 }
 
-function valuesToSettings(values: Record<string, MenuValue>): StatusLineSettings {
+export function valuesToSettings(values: Record<string, MenuValue>): StatusLineSettings {
 	const segments: StatusLineSegmentToggles = {};
 	for (const row of SEGMENT_ROWS) segments[row.id] = values[row.id] === true;
 	const separator = values.separator as StatusLineSeparatorStyle;
@@ -216,6 +233,7 @@ function valuesToSettings(values: Record<string, MenuValue>): StatusLineSettings
 		nvidiaGreenAnimation: values.nvidiaGreenAnimation === true,
 		embedWorkingStatus: values.embedWorkingStatus === true,
 		embedCompactionProgress: values.embedCompactionProgress === true,
+		cacheHitBarSegments: clampCacheHitCells(Number(values.cacheHitBarSegments)),
 	};
 }
 
@@ -226,7 +244,8 @@ const CANNED_TOKEN_RATE = { rate: 87, phase: "active", fadeShade: 0 } as const;
 /** Stand-in payloads so configured feeds still preview without a live publisher. */
 const CANNED_FEED_NUMBER = 1.23;
 const CANNED_HINT = "↑ 3 more";
-const CANNED_STATS = "↑ 12.4K ↓ 3.1K R 148K W 12K 92.3% $0.42";
+const CANNED_CACHE_HIT = 92.3;
+const CANNED_STATS = `↑ 12.4K ↓ 3.1K R 148K W 12K CH${CANNED_CACHE_HIT}% $0.42`;
 const CANNED_GIT = { branch: "main", status: { staged: 1, unstaged: 2, untracked: 3 } };
 const CANNED_PERCENT = 42;
 const CANNED_WINDOW = 200_000;
@@ -281,6 +300,7 @@ class StatusLinePreview {
 				pr: true,
 				piStats: true,
 				tokenRate: true,
+				cacheHit: effective.includes.cacheHit,
 				feeds: effective.segmentOptions.feeds.map(f => f.customType),
 			};
 			const base = this.#builder.build(barWidth, effective.segmentOptions, include, CANNED_HINT);
@@ -302,7 +322,9 @@ class StatusLinePreview {
 				contextPercent: base.contextPercent ?? CANNED_PERCENT,
 				contextTokens: base.contextPercent == null ? Math.round((contextWindow * CANNED_PERCENT) / 100) : base.contextTokens,
 				contextWindow,
-				piStats: base.piStats ?? CANNED_STATS,
+				cacheHitPercent: base.cacheHitPercent ?? CANNED_CACHE_HIT,
+				// The canned line stands in for pi's, so it moves CH beside the graph exactly as the builder does.
+				piStats: base.piStats ?? (effective.includes.cacheHit ? stripCacheHitStat(CANNED_STATS) : CANNED_STATS),
 				tokenRate: base.tokenRate ?? CANNED_TOKEN_RATE,
 				feedData: cannedFeedData(effective.segmentOptions.feeds, base.feedData),
 			};

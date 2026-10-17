@@ -17,6 +17,7 @@ export type StatusLineSegmentId =
 	| "pi_stats"
 	| "token_rate"
 	| "feeds"
+	| "cache_hit_graph"
 	| "context_graph"
 	| "scroll_hint"
 	| "working"
@@ -58,6 +59,7 @@ export interface StatusLineSegmentToggles {
 	feeds?: boolean;
 	feedsBottomLeft?: boolean;
 	tokenRateBottomLeft?: boolean;
+	cacheHitBar?: boolean;
 	contextBar?: boolean;
 	contextStats?: boolean;
 	scrollHint?: boolean;
@@ -84,6 +86,8 @@ export interface StatusLineSettings {
 	embedWorkingStatus?: boolean;
 	/** Host compaction progress in the bottom bar while pi compacts. */
 	embedCompactionProgress?: boolean;
+	/** Length of the cache hit bar in segments (3–10, default 4); the bar is logarithmic at every size. */
+	cacheHitBarSegments?: number;
 }
 
 /** Resolved per-segment render options; resolveEffectiveSettings always fills them. */
@@ -91,6 +95,7 @@ export interface StatusLineSegmentOptions {
 	model: { showModel: boolean; showProvider: boolean; showThinking: boolean };
 	path: { abbreviate: boolean; maxLength: number; stripWorkPrefix: boolean };
 	context: { showBar: boolean; showStats: boolean };
+	cacheHit: { cells: number };
 	/** Subscriptions rendered by the feeds segment, in display order. */
 	feeds: StatusLineFeed[];
 }
@@ -101,6 +106,8 @@ export interface SegmentIncludes {
 	pr: boolean;
 	piStats: boolean;
 	tokenRate: boolean;
+	/** Whether the cache-hit graph needs a session-usage snapshot. */
+	cacheHit?: boolean;
 	feeds: readonly string[];
 }
 
@@ -137,6 +144,8 @@ export interface SegmentContext {
 	contextPercent: number | null;
 	contextTokens: number;
 	contextWindow: number;
+	/** Cumulative cache-read share of prompt tokens, or null before any prompt usage. */
+	cacheHitPercent?: number | null;
 	/**
 	 * True while contextPercent and contextTokens are pi's estimate of a freshly
 	 * compacted context, shown until pi measures the next response.

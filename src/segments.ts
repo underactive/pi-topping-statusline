@@ -8,6 +8,7 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { getCapabilities, hyperlink, truncateToWidth } from "@earendil-works/pi-tui";
+import { renderCacheHitGraph } from "./cache-hit.js";
 import { renderContextGraph } from "./context-graph.js";
 import { formatContextUsage } from "./context-thresholds.js";
 import { MAJOR_COLOR_HEXES, hexToFgAnsi, theme } from "./theme.js";
@@ -329,6 +330,16 @@ const workingSegment: StatusLineSegment = {
 	},
 };
 
+/** Cache-hit graph + its moved CH figure; related parts stay in one segment. */
+const cacheHitGraphSegment: StatusLineSegment = {
+	id: "cache_hit_graph",
+	render(ctx) {
+		const percent = ctx.cacheHitPercent;
+		if (percent == null) return INVISIBLE;
+		return { content: `${renderCacheHitGraph(percent, ctx.options.cacheHit.cells)} ${theme.fg("dim", `CH${percent.toFixed(1)}%`)}`, visible: true };
+	},
+};
+
 /** Context bar + stats — related parts joined by a space, not the group separator. */
 const contextGraphSegment: StatusLineSegment = {
 	id: "context_graph",
@@ -436,6 +447,7 @@ export const SEGMENTS: Record<StatusLineSegmentId, StatusLineSegment> = {
 	pi_stats: piStatsSegment,
 	token_rate: tokenRateSegment,
 	feeds: feedsSegment,
+	cache_hit_graph: cacheHitGraphSegment,
 	context_graph: contextGraphSegment,
 	scroll_hint: scrollHintSegment,
 	working: workingSegment,

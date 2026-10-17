@@ -191,6 +191,7 @@ export type StatusColor =
 	| "statusLineGitDirty"
 	| "statusLineContext"
 	| "statusLineContextElevated"
+	| "statusLineCacheHit"
 	| "statusLineStaged"
 	| "statusLineDirty"
 	| "statusLineUntracked"
@@ -212,6 +213,7 @@ const FG_COLORS: Record<StatusColor, ColorValue> = {
 	statusLineGitDirty: "#d7af5f",
 	statusLineContext: "#8787af",
 	statusLineContextElevated: "#e07a1f",
+	statusLineCacheHit: "#7fb069",
 	statusLineStaged: 70,
 	statusLineDirty: 178,
 	statusLineUntracked: 39,

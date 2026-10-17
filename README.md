@@ -62,7 +62,7 @@ and apply live.
 ╟─ Top Right Segment Group ──────────────────────────────────────╢
 ║    [ ] Token rate                                          OFF ║
 ║    [■] Session name                                        ON  ║
-║  … Bottom Right / Bottom Left groups — 8 more toggles          ║
+║  … Bottom Right / Bottom Left groups — 10 more rows            ║
 ║                                                                ║
 ╟─ Feeds ────────────────────────────────────────────────────────╢
 ║    1. type         pi-prompt-cache/savings                     ║
@@ -73,7 +73,7 @@ and apply live.
 ║    + add feed                                                  ║
 ║                                                                ║
 ║  ↑↓ move  ←→ cycle  ␣ toggle  ⏎ apply/edit  esc cancel         ║
-╚════════════════════════════════════════════════════════[ 1/33 ]╝
+╚════════════════════════════════════════════════════════[ 1/35 ]╝
 ```
 
 | Section | Settings |
@@ -81,10 +81,12 @@ and apply live.
 | Global | Transparent Segments · Separator (`powerline` `powerline-thin` `slash` `pipe` `ascii`) · Symbols (`nerdfont` `unicode` `ascii` — stored in settings.json as `nerd`/`unicode`/`ascii`) · Border style (`rounded` `heavy` `double` `single`) · Rainbow border on max thinking · Animate rainbow border · NVIDIA-green when using Switchyard · Animate Switchyard green border · Embed status spinners · Embed compaction progress |
 | Top Left Segment Group | Pi symbol · Model · Provider · Thinking level · Path · Git · PR |
 | Top Right Segment Group | Token rate · Session name |
-| Bottom Right Segment Group | Feeds · Token rate · Pi stats · Context bar · Context stats |
+| Bottom Right Segment Group | Feeds · Token rate · Pi stats · Cache hit bar · CH bar segments (`3`–`10`) · Context bar · Context stats |
 | Bottom Left Segment Group | Scroll hint · Feeds · Token rate |
 | Feeds | One subscription per row: type · field · prefix · format, plus add/remove |
-| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on · Animate rainbow border on · NVIDIA-green when using Switchyard on · Animate Switchyard green border on · Embed status spinners off · Embed compaction progress on |
+| Defaults | Transparent on · Separator `powerline-thin` · Symbols `nerdfont` · Border style `rounded` · Rainbow border on · Animate rainbow border on · NVIDIA-green when using Switchyard on · Animate Switchyard green border on · Embed status spinners off · Embed compaction progress on · CH bar segments `4` |
+
+**Cache hit bar** renders a logarithmic graph and its `CH` percentage as a separate bottom-right segment. **CH bar segments** sets its length, from 3 to 10 (default 4). Only a 0% hit rate leaves it empty; any hit fills the first cell, the second fills at 50% and the last at 99.2%, and the cells between are spaced evenly on a log scale of the miss rate, so every length keeps its resolution near 100%. At five segments the cells fill at above 0%, 50%, 87.5%, 96.9% and 99.2%, each quartering the remaining miss rate. The filled cells share one color picked from the hit rate at any length: red below 50%, orange below 87.5%, yellow below 96.9%, then a subdued green. When it is visible, the repeated `CH` field is removed from Pi stats; the configured separator sits between Pi stats, the cache-hit segment, and the context graph.
 
 With **Rainbow border on max thinking** on (the default), cycling the thinking level to `max`
 replaces the border's fixed theme color with a rainbow: a full hue cycle distributed around the

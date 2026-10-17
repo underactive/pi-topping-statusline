@@ -68,17 +68,21 @@ test("the bar hosts the progress only with the setting on and a stand-in slot sh
 	assert.equal(hostsCompactionProgress(graphOnly), true, "the context graph alone hosts the bar");
 	const statsOnly = resolveEffectiveSettings({ segments: { contextBar: false, contextStats: false } });
 	assert.equal(hostsCompactionProgress(statsOnly), true, "pi stats alone host the figures");
-	const nowhere = resolveEffectiveSettings({ segments: { piStats: false, contextBar: false, contextStats: false } });
+	const nowhere = resolveEffectiveSettings({ segments: { piStats: false, cacheHitBar: false, contextBar: false, contextStats: false } });
 	assert.equal(hostsCompactionProgress(nowhere), false);
+	const cacheOnly = resolveEffectiveSettings({ segments: { piStats: false, contextBar: false, contextStats: false } });
+	assert.ok(cacheOnly.bottomRightSegments.includes("cache_hit_graph"), "the cache bar keeps its segment");
+	assert.equal(hostsCompactionProgress(cacheOnly), false, "the cache bar alone is not a stand-in slot");
 });
 
 test("bottomRightSegments swaps in the stand-ins in place while compacting", () => {
 	const effective = resolveEffectiveSettings({ segments: { feeds: true, tokenRate: true } });
-	assert.deepEqual(effective.bottomRightSegments, ["feeds", "token_rate", "pi_stats", "context_graph"]);
+	assert.deepEqual(effective.bottomRightSegments, ["feeds", "token_rate", "pi_stats", "cache_hit_graph", "context_graph"]);
 	assert.deepEqual(bottomRightSegments(effective, true), [
 		"feeds",
 		"token_rate",
 		"compaction_info",
+		"cache_hit_graph",
 		"compaction_graph",
 	]);
 	assert.equal(bottomRightSegments(effective, false), effective.bottomRightSegments);

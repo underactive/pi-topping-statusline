@@ -6,6 +6,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import { clampCacheHitCells } from "./cache-hit.js";
 import { theme, type BorderStyle, type SymbolPreset } from "./theme.js";
 import type {
 	EffectiveStatusLineSettings,
@@ -49,6 +50,7 @@ export const DEFAULT_SEGMENTS: Required<StatusLineSegmentToggles> = {
 	feeds: false,
 	feedsBottomLeft: false,
 	tokenRateBottomLeft: false,
+	cacheHitBar: true,
 	contextBar: true,
 	contextStats: true,
 	scrollHint: true,
@@ -97,6 +99,7 @@ function loadSettings(): StatusLineSettings {
 		if (typeof raw.nvidiaGreenAnimation === "boolean") settings.nvidiaGreenAnimation = raw.nvidiaGreenAnimation;
 		if (typeof raw.embedWorkingStatus === "boolean") settings.embedWorkingStatus = raw.embedWorkingStatus;
 		if (typeof raw.embedCompactionProgress === "boolean") settings.embedCompactionProgress = raw.embedCompactionProgress;
+		if (typeof raw.cacheHitBarSegments === "number") settings.cacheHitBarSegments = clampCacheHitCells(raw.cacheHitBarSegments);
 		return settings;
 	} catch {
 		// Missing or corrupt settings.json falls back to defaults.
@@ -126,6 +129,7 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 	if (seg.feeds) bottomRightSegments.push("feeds");
 	if (seg.tokenRate) bottomRightSegments.push("token_rate");
 	if (seg.piStats) bottomRightSegments.push("pi_stats");
+	if (seg.cacheHitBar) bottomRightSegments.push("cache_hit_graph");
 	if (seg.contextBar || seg.contextStats) bottomRightSegments.push("context_graph");
 
 	const rightSegments: StatusLineSegmentId[] = [];
@@ -145,6 +149,7 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 		pr: allSegments.includes("pr"),
 		piStats: allSegments.includes("pi_stats"),
 		tokenRate: allSegments.includes("token_rate"),
+		cacheHit: allSegments.includes("cache_hit_graph"),
 		feeds: allSegments.includes("feeds") ? feeds.map(feed => feed.customType) : [],
 	};
 
@@ -168,6 +173,7 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 			model: { showModel: seg.model, showProvider: seg.provider, showThinking: seg.thinking },
 			path: { abbreviate: true, maxLength: 40, stripWorkPrefix: true },
 			context: { showBar: seg.contextBar, showStats: seg.contextStats },
+			cacheHit: { cells: clampCacheHitCells(settings.cacheHitBarSegments) },
 			feeds,
 		},
 	};

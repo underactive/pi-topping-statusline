@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add a logarithmic cache-hit graph (4 segments by default) before the context graph, following pi's `CH` figure (the latest response's hit rate) and computing it the same way when pi's stats line is unavailable; any hit above 0% fills the first cell, later cells fill at 50%, 87.5%, 96.9% and 99.2% (at 5 segments), and the whole bar takes one color from its hit-rate tier, with a 100% hit rate as good (subdued green)
+- Add a "Cache hit bar" toggle to the settings menu's Bottom Right Segment Group (on by default), independent of the Context bar toggle
+- Add a "CH bar segments" setting (3–10, default 4, stored as `cacheHitBarSegments`) that sets the cache-hit bar's length. The bar stays logarithmic at every length: the second segment fills at 50%, the last at 99.2%, and the segments between are spaced evenly on a log scale of the miss rate
+
+### Changed
+
+- Move Pi's `CH` percentage beside the cache-hit graph and remove its redundant copy from Pi stats while the cache-hit bar is visible
+
 ## [0.2.8]
 
 ### Changed
