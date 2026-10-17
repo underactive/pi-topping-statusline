@@ -7,7 +7,7 @@ import { SEGMENTS } from "../segments.ts";
 import { resolveEffectiveSettings } from "../settings.ts";
 
 const OPTIONS = resolveEffectiveSettings({}).segmentOptions;
-const GIT_INCLUDE = { git: true, pr: false, piStats: false, tokenRate: false, feeds: [] };
+const GIT_INCLUDE = { git: true, pr: false, piStats: false, tokenRate: false, cacheHit: false, feeds: [] };
 const NO_GIT_INCLUDE = { ...GIT_INCLUDE, git: false };
 const CWD = "/repo";
 
@@ -37,7 +37,7 @@ test("the context builder supplies changed-file counts to the git segment", asyn
 			commands.push(args);
 			if (args[0] === "rev-parse") return { code: 0, stdout: "/repo/.git\n/repo/.git\n/repo\n" };
 			if (args[0] === "branch") return { code: 0, stdout: "main\n" };
-			if (args[0] === "status") return { code: 0, stdout: " M unstaged.ts\nM  staged.ts\n?? new.ts\n" };
+			if (args.includes("status")) return { code: 0, stdout: " M unstaged.ts\nM  staged.ts\n?? new.ts\n" };
 			return { code: 1, stdout: "" };
 		},
 		getThinkingLevel: () => "off",
@@ -57,6 +57,6 @@ test("the context builder supplies changed-file counts to the git segment", asyn
 		untracked: 1,
 	});
 	assert.equal(stripAnsi(SEGMENTS.git.render(snapshot).content).includes("main *1 +1 ?1"), true);
-	assert.ok(commands.some(args => args.join(" ") === "status --porcelain"));
+	assert.ok(commands.some(args => args.join(" ") === "-c core.fsmonitor=false status --porcelain"));
 	builder.dispose();
 });

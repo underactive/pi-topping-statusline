@@ -21,7 +21,7 @@ import type { SegmentContext } from "../types.ts";
 
 const WINDOW = 131_072;
 const OPTIONS = resolveEffectiveSettings({}).segmentOptions;
-const INCLUDE = { git: false, pr: false, piStats: false, tokenRate: false, feeds: [] };
+const INCLUDE = { git: false, pr: false, piStats: false, tokenRate: false, cacheHit: false, feeds: [] };
 /** Outside any repo, so the builder's git probes stay inert. */
 const CWD = "/tmp/pi-topping-statusline-tests";
 const fakePi = { exec: async () => undefined, getThinkingLevel: () => "off" } as unknown as ExtensionAPI;

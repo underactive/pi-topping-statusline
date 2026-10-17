@@ -24,7 +24,7 @@ import { feedKey } from "../utils.ts";
 
 const SAVINGS = "pi-prompt-cache/savings";
 const OPTIONS = resolveEffectiveSettings({}).segmentOptions;
-const INCLUDE = { git: false, pr: false, piStats: false, tokenRate: false, feeds: [SAVINGS] };
+const INCLUDE = { git: false, pr: false, piStats: false, tokenRate: false, cacheHit: false, feeds: [SAVINGS] };
 /** Outside any repo, so the builder's git probes stay inert. */
 const CWD = "/tmp/pi-topping-statusline-tests";
 /** Match the builder's intentional prototype-less feed map in deep equality assertions. */
@@ -464,8 +464,8 @@ test("defaults: segment off, seeded with the pi-prompt-cache subscription", () =
 	]);
 	assert.deepEqual(resolveEffectiveSettings({ segments: { feeds: true } }).bottomRightSegments, [
 		"feeds",
-		"pi_stats",
 		"cache_hit_graph",
+		"pi_stats",
 		"context_graph",
 	]);
 });
@@ -473,7 +473,7 @@ test("defaults: segment off, seeded with the pi-prompt-cache subscription", () =
 test("feeds lead the bottom-right group", () => {
 	assert.deepEqual(
 		resolveEffectiveSettings({ segments: { feeds: true, tokenRate: true } }).bottomRightSegments,
-		["feeds", "token_rate", "pi_stats", "cache_hit_graph", "context_graph"],
+		["feeds", "token_rate", "cache_hit_graph", "pi_stats", "context_graph"],
 	);
 });
 

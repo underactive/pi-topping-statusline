@@ -48,8 +48,8 @@ test("the fallback rate stays absent before an assistant reports prompt tokens",
 	assert.equal(getCacheHitPercent([entry({ type: "message", message: { role: "assistant", usage: usage(0, 0) } })]), null);
 });
 
-test("pi's CH stat is parsed from its styled stats line", () => {
-	assert.equal(parseCacheHitStat("\x1b[2m↑1.2M ↓48K R6.1M W120K CH99.4% $2.357\x1b[22m"), 99.4);
+test("pi's CH stat is parsed from its stats line", () => {
+	assert.equal(parseCacheHitStat("↑1.2M ↓48K R6.1M W120K CH99.4% $2.357"), 99.4);
 	assert.equal(parseCacheHitStat("↑1.2M ↓48K $2.357"), null);
 	assert.equal(parseCacheHitStat(undefined), null);
 });
@@ -69,7 +69,7 @@ test("the Cache hit bar toggle controls a standalone segment", () => {
 	assert.equal(off.segmentOptions.context.showBar, true);
 	assert.ok(!off.bottomRightSegments.includes("cache_hit_graph"));
 
-	const cacheOnly = resolveEffectiveSettings({ segments: { contextBar: false, contextStats: false } });
+	const cacheOnly = resolveEffectiveSettings({ segments: { piStats: false, contextBar: false, contextStats: false } });
 	assert.deepEqual(cacheOnly.bottomRightSegments.slice(-1), ["cache_hit_graph"]);
 });
 
@@ -115,6 +115,24 @@ test("the builder prefers pi's CH stat and falls back to the derived rate", () =
 	assert.equal(fallback.build(80, effective.segmentOptions, include, undefined).cacheHitPercent, 50);
 	builder.dispose();
 	fallback.dispose();
+});
+
+test("the builder does not derive a CH rate when pi's stats line omits it", () => {
+	const effective = resolveEffectiveSettings({});
+	const fakePi = { exec: async () => undefined, getThinkingLevel: () => "off" } as unknown as ExtensionAPI;
+	const entries = [entry({ type: "message", message: { role: "assistant", usage: usage(100, 0) } })];
+	const ctx = {
+		cwd: "/tmp/pi-topping-statusline-tests",
+		model: undefined,
+		getContextUsage: () => undefined,
+		sessionManager: { getSessionName: () => undefined, getEntries: () => entries },
+	} as unknown as ExtensionContext;
+	const include = { ...effective.includes, git: false, pr: false, piStats: true, feeds: [] };
+	const builder = new SegmentContextBuilder(fakePi);
+	builder.setPiStatsProvider(() => "↑1.2M ↓48K $2.357");
+	builder.attach(ctx);
+	assert.equal(builder.build(80, effective.segmentOptions, include, undefined).cacheHitPercent, null);
+	builder.dispose();
 });
 
 test("only 0% is empty; after 50% each cell quarters the remaining miss rate", () => {
@@ -183,8 +201,21 @@ test("the bottom bar groups Pi stats, the CH graph and context graph separately"
 	const bar = buildStatusLine(0, ctx, effective, text => text, { left: [], right: effective.bottomRightSegments });
 	assert.equal(
 		stripAnsi(bar),
-		` ↑425k ↓40k R11M W328k $5.091  ${"▋".repeat(4)}░ CH99.1%  ${"▋".repeat(4)}${"░".repeat(16)} 17.8%/1.0M `,
+		` ${"▋".repeat(4)}░ CH99.1%  ↑425k ↓40k R11M W328k $5.091  ${"▋".repeat(4)}${"░".repeat(16)} 17.8%/1.0M `,
 	);
+
+	let fittedRight: readonly string[] = [];
+	const narrowBar = buildStatusLine(
+		20,
+		ctx,
+		effective,
+		text => text,
+		{ left: [], right: effective.bottomRightSegments },
+		undefined,
+		{ onFit: fit => { fittedRight = fit.right; } },
+	);
+	assert.deepEqual(fittedRight, ["cache_hit_graph"]);
+	assert.ok(stripAnsi(narrowBar).includes("CH99.1%"));
 });
 
 test("the 5-segment scale is the quartering scale: 50, 87.5, 96.875, 99.21875", () => {

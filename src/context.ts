@@ -314,7 +314,7 @@ export class SegmentContextBuilder {
 		if (!cwd || !this.#repo || this.#gitStatusInFlight) return;
 		this.#gitStatusInFlight = true;
 		try {
-			const out = await this.#exec("git", ["status", "--porcelain"], cwd);
+			const out = await this.#exec("git", ["-c", "core.fsmonitor=false", "status", "--porcelain"], cwd);
 			if (this.#repoCwd !== cwd) return;
 			this.#gitStatusFetchedAt = Date.now();
 			const next = out === undefined ? null : parseGitStatusCounts(out);
@@ -531,11 +531,15 @@ export class SegmentContextBuilder {
 		const { contextWindow, tokens, percent: contextPercent, estimated } = this.#deriveContextUsage(ctx);
 		// Pi's own CH figure wins so the graph always agrees with the stats beside it;
 		// the derived rate covers hosts or widths where pi's stats line is unavailable.
-		const piStats = include.piStats || include.cacheHit === true ? this.#piStatsProvider?.(width) : undefined;
+		const piStats = include.piStats || include.cacheHit ? this.#piStatsProvider?.(width) : undefined;
 		const cacheHitPercent =
-			include.cacheHit === true ? (parseCacheHitStat(piStats) ?? this.#deriveCacheHitPercent(ctx, now)) : null;
+			include.cacheHit
+				? piStats === undefined
+					? this.#deriveCacheHitPercent(ctx, now)
+					: parseCacheHitStat(piStats)
+				: null;
 		const shownPiStats =
-			include.piStats && include.cacheHit === true && cacheHitPercent !== null ? stripCacheHitStat(piStats) : piStats;
+			include.piStats && include.cacheHit && cacheHitPercent !== null ? stripCacheHitStat(piStats) : piStats;
 
 		return {
 			options,

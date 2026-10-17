@@ -1,6 +1,6 @@
 import type { Usage } from "@earendil-works/pi-ai";
 import type { SessionEntry } from "@earendil-works/pi-coding-agent";
-import { stripAnsi } from "./footer.js";
+import { FILLED, TROUGH } from "./context-graph.js";
 import { theme, type StatusColor } from "./theme.js";
 
 export const CACHE_HIT_MIN_CELLS = 3;
@@ -22,10 +22,6 @@ const CACHE_HIT_COLOR_BANDS: readonly { below: number; color: StatusColor }[] = 
 	{ below: 87.5, color: "statusLineContextElevated" },
 	{ below: 96.875, color: "warning" },
 ];
-const CACHE_HIT_TOP_COLOR: StatusColor = "statusLineCacheHit";
-
-const FILLED = "\u258b";
-const TROUGH = "\u2591";
 
 const tokens = (value: number): number => (Number.isFinite(value) ? Math.max(0, value) : 0);
 
@@ -42,25 +38,22 @@ export function getCacheHitPercent(entries: readonly SessionEntry[]): number | n
 		if (!usage) return null;
 		const read = tokens(usage.cacheRead);
 		const promptTokens = tokens(usage.input) + read + tokens(usage.cacheWrite);
-		return promptTokens > 0 ? Math.min(100, (read / promptTokens) * 100) : null;
+		return promptTokens > 0 ? (read / promptTokens) * 100 : null;
 	}
 	return null;
 }
 
 /** The `CH<pct>%` figure in pi's footer stats line, when pi shows one. */
+const CH_STAT_RE = /(?:^|\s)CH(\d+(?:\.\d+)?)%/;
+
 export function parseCacheHitStat(stats: string | undefined): number | null {
-	if (!stats) return null;
-	const match = /(?:^|\s)CH(\d+(?:\.\d+)?)%/.exec(stripAnsi(stats));
-	if (!match) return null;
-	const percent = Number(match[1]);
-	return Number.isFinite(percent) ? Math.min(100, Math.max(0, percent)) : null;
+	const match = CH_STAT_RE.exec(stats ?? "");
+	return match ? Number(match[1]) : null;
 }
 
 /** Remove Pi's CH figure after it has been moved beside the cache-hit graph. */
 export function stripCacheHitStat(stats: string | undefined): string | undefined {
-	if (!stats) return undefined;
-	const stripped = stats.replace(/(?:^|\s)CH\d+(?:\.\d+)?%/, "").replace(/\s+/g, " ").trim();
-	return stripped || undefined;
+	return stats?.replace(CH_STAT_RE, "").trim() || undefined;
 }
 
 /** A bar size from settings, snapped to a whole number in range; anything unusable becomes the default. */
@@ -92,13 +85,12 @@ export function getCacheHitThresholds(cells: number): number[] {
 /** Filled cells on a logarithmic scale: only 0% is empty, and any hit at all fills the first cell. */
 export function getCacheHitGraphCells(percent: number, cells = CACHE_HIT_DEFAULT_CELLS): number {
 	if (!Number.isFinite(percent) || percent <= 0) return 0;
-	const clamped = Math.min(100, percent);
-	return 1 + getCacheHitThresholds(cells).filter(threshold => clamped >= threshold).length;
+	return 1 + getCacheHitThresholds(cells).filter(threshold => percent >= threshold).length;
 }
 
 /** The bar's single color for a hit rate; the same bands at every bar size. */
-export function getCacheHitColor(percent: number): StatusColor {
-	return CACHE_HIT_COLOR_BANDS.find(band => percent < band.below)?.color ?? CACHE_HIT_TOP_COLOR;
+function getCacheHitColor(percent: number): StatusColor {
+	return CACHE_HIT_COLOR_BANDS.find(band => percent < band.below)?.color ?? "statusLineCacheHit";
 }
 
 /**

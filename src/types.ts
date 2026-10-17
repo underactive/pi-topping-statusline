@@ -107,7 +107,7 @@ export interface SegmentIncludes {
 	piStats: boolean;
 	tokenRate: boolean;
 	/** Whether the cache-hit graph needs a session-usage snapshot. */
-	cacheHit?: boolean;
+	cacheHit: boolean;
 	feeds: readonly string[];
 }
 
@@ -144,7 +144,7 @@ export interface SegmentContext {
 	contextPercent: number | null;
 	contextTokens: number;
 	contextWindow: number;
-	/** Cumulative cache-read share of prompt tokens, or null before any prompt usage. */
+	/** The latest assistant response's cache-read share of its prompt tokens (pi's footer CH), or null when none has reported prompt tokens. */
 	cacheHitPercent?: number | null;
 	/**
 	 * True while contextPercent and contextTokens are pi's estimate of a freshly

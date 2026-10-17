@@ -27,7 +27,7 @@ builder.attach(fakeCtx);
 const BASE = builder.build(
 	80,
 	resolveEffectiveSettings({}).segmentOptions,
-	{ git: false, pr: false, piStats: false, tokenRate: true, feeds: [] },
+	{ git: false, pr: false, piStats: false, tokenRate: true, cacheHit: false, feeds: [] },
 	undefined,
 );
 

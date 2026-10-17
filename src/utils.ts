@@ -25,8 +25,8 @@ export function formatNumber(n: number): string {
 	return `${Math.round(n / 1_000_000_000)}B`;
 }
 
-export function shortenPath(filePath: string, homeDir?: string): string {
-	const home = homeDir ?? process.env.HOME ?? "";
+export function shortenPath(filePath: string): string {
+	const home = process.env.HOME ?? "";
 	if (home && filePath.startsWith(home)) {
 		const suffix = filePath.slice(home.length);
 		if (suffix === "" || suffix.startsWith("/")) return `~${suffix}`;
