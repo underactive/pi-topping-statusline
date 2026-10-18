@@ -6,6 +6,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import { ENTRY_TYPES } from "@underactive/pi-topping-primitives/contracts";
 import { clampCacheHitCells } from "./cache-hit.js";
 import { theme, type BorderStyle, type SymbolPreset } from "./theme.js";
 import type {
@@ -32,7 +33,7 @@ export const FEED_FORMATS: readonly FeedFormat[] = ["currency", "number", "text"
  * as soon as it is switched on and doubles as a worked example of the shape.
  */
 export const DEFAULT_FEEDS: readonly StatusLineFeed[] = [
-	{ customType: "pi-topping-compact/savings", field: "savedUsd", prefix: "CS", format: "currency" },
+	{ customType: ENTRY_TYPES.compactSavings, field: "savedUsd", prefix: "CS", format: "currency" },
 ];
 
 export const DEFAULT_SEGMENTS: Required<StatusLineSegmentToggles> = {

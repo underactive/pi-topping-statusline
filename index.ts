@@ -26,6 +26,7 @@ import {
 	type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
+import { CHANNELS, emit } from "@underactive/pi-topping-primitives/contracts";
 import { makeBoxPainters, renderBoxRow, renderBoxRowIfVisible } from "./src/box.js";
 import { hostsCompactionProgress } from "./src/compaction-embed.js";
 import { CompactionMonitor } from "./src/compaction-progress.js";
@@ -46,7 +47,7 @@ import { theme } from "./src/theme.js";
 import { TokenRateMonitor } from "./src/token-rate.js";
 import type { StatusLineSegmentId } from "./src/types.js";
 import { isMessageKind, type StatusIndicatorKind, StatusTransition } from "./src/working-status.js";
-import { hostsWorkingStatus, WORKING_STATUS_EMBED_CHANNEL } from "./src/working-status-embed.js";
+import { hostsWorkingStatus } from "./src/working-status-embed.js";
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
 
 const STATUS_ANIMATION_FRAME_MS = 30;
@@ -86,7 +87,7 @@ export default function (pi: ExtensionAPI) {
 	};
 
 	// pi-topping slides its loader's response model out only while this bar hosts the loader.
-	const announceEmbed = (embedded: boolean): void => pi.events.emit(WORKING_STATUS_EMBED_CHANNEL, { embedded });
+	const announceEmbed = (embedded: boolean): void => emit(pi.events, CHANNELS.workingStatusEmbedded, { embedded });
 
 	const requestRender = () => activeTui?.requestRender();
 	builder.setRequestRender(requestRender);

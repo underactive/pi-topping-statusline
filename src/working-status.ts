@@ -1,10 +1,9 @@
 import type { CustomEditor } from "@earendil-works/pi-coding-agent";
+import { WORKING_STATUS_SLIDE_MS } from "@underactive/pi-topping-primitives/contracts";
 import { easeFade } from "./theme.js";
 
 export type StatusIndicatorKind = NonNullable<Parameters<CustomEditor["setWorkingStatusIndicator"]>[0]>["kind"];
 
-/** Slide-out time for a status that appears while the top-left group shows none. */
-export const STATUS_SLIDE_MS = 300;
 /** Briefly retain a cleared status so handoffs between host indicators do not flash. */
 export const STATUS_HOLD_MS = 150;
 /** Cross-fade budget when the embedded working status disappears: half out, half in. */
@@ -36,7 +35,7 @@ interface StatusExit {
  * Resolve host status-indicator handoffs into stable top-bar frames.
  *
  * A status that appears while the top-left group shows none slides out over
- * STATUS_SLIDE_MS. pi 0.86 routes working, retry, compaction, and
+ * WORKING_STATUS_SLIDE_MS. pi 0.86 routes working, retry, compaction, and
  * branch-summary indicators through the editor border and may clear the slot
  * between them. A cleared status is held briefly to bridge that gap, and a
  * status arriving while the previous one is still drawn takes its place
@@ -88,7 +87,7 @@ export class StatusTransition {
 	pending(now: number): boolean {
 		const exit = this.#exit;
 		if (exit) return now < exit.holdUntil + exit.fadeMs;
-		return this.#slideFrom !== undefined && now < this.#slideFrom + STATUS_SLIDE_MS;
+		return this.#slideFrom !== undefined && now < this.#slideFrom + WORKING_STATUS_SLIDE_MS;
 	}
 
 	reset(): void {
@@ -108,7 +107,7 @@ export class StatusTransition {
 	 */
 	#withSlide(frame: StatusFrame, now: number): StatusFrame {
 		if (this.#slideFrom === undefined) return frame;
-		const progress = (now - this.#slideFrom) / STATUS_SLIDE_MS;
+		const progress = (now - this.#slideFrom) / WORKING_STATUS_SLIDE_MS;
 		if (progress >= 1) {
 			this.#slideFrom = undefined;
 			return frame;

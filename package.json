@@ -31,7 +31,7 @@
 	],
 	"scripts": {
 		"typecheck": "tsc --noEmit",
-		"test": "node --import ./src/tests/ts-resolve.ts --test src/tests/*.test.ts"
+		"test": "node -C compiled --import ./src/tests/ts-resolve.ts --test src/tests/*.test.ts"
 	},
 	"pi": {
 		"extensions": [
