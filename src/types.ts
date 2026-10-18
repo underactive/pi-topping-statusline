@@ -27,7 +27,7 @@ export type StatusLineSegmentId =
 /**
  * A feed the statusline subscribes to: custom session entries published by
  * another extension under `customType`, as pi-topping-compact does with
- * "pi-topping-compact/savings". `field` names the property of the entry's data
+ * `ENTRY_TYPES.compactSavings`. `field` names the property of the entry's data
  * object to display, and `prefix` is the literal label drawn before it.
  */
 export interface StatusLineFeed {
