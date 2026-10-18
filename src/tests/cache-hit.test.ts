@@ -201,12 +201,12 @@ test("the bottom bar groups Pi stats, the CH graph and context graph separately"
 	const bar = buildStatusLine(0, ctx, effective, text => text, { left: [], right: effective.bottomRightSegments });
 	assert.equal(
 		stripAnsi(bar),
-		` ${"▋".repeat(4)}░ CH99.1%  ↑425k ↓40k R11M W328k $5.091  ${"▋".repeat(4)}${"░".repeat(16)} 17.8%/1.0M `,
+		` ↑425k ↓40k R11M W328k $5.091  ${"▋".repeat(4)}░ CH99.1%  ${"▋".repeat(4)}${"░".repeat(16)} 17.8%/1.0M `,
 	);
 
 	let fittedRight: readonly string[] = [];
 	const narrowBar = buildStatusLine(
-		20,
+		50,
 		ctx,
 		effective,
 		text => text,
@@ -214,7 +214,7 @@ test("the bottom bar groups Pi stats, the CH graph and context graph separately"
 		undefined,
 		{ onFit: fit => { fittedRight = fit.right; } },
 	);
-	assert.deepEqual(fittedRight, ["cache_hit_graph"]);
+	assert.deepEqual(fittedRight, ["pi_stats", "cache_hit_graph"]);
 	assert.ok(stripAnsi(narrowBar).includes("CH99.1%"));
 });
 

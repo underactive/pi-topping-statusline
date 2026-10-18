@@ -464,8 +464,8 @@ test("defaults: segment off, seeded with the pi-prompt-cache subscription", () =
 	]);
 	assert.deepEqual(resolveEffectiveSettings({ segments: { feeds: true } }).bottomRightSegments, [
 		"feeds",
-		"cache_hit_graph",
 		"pi_stats",
+		"cache_hit_graph",
 		"context_graph",
 	]);
 });
@@ -473,7 +473,7 @@ test("defaults: segment off, seeded with the pi-prompt-cache subscription", () =
 test("feeds lead the bottom-right group", () => {
 	assert.deepEqual(
 		resolveEffectiveSettings({ segments: { feeds: true, tokenRate: true } }).bottomRightSegments,
-		["feeds", "token_rate", "cache_hit_graph", "pi_stats", "context_graph"],
+		["feeds", "token_rate", "pi_stats", "cache_hit_graph", "context_graph"],
 	);
 });
 

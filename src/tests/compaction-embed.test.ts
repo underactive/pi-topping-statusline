@@ -77,12 +77,12 @@ test("the bar hosts the progress only with the setting on and a stand-in slot sh
 
 test("bottomRightSegments swaps in the stand-ins in place while compacting", () => {
 	const effective = resolveEffectiveSettings({ segments: { feeds: true, tokenRate: true } });
-	assert.deepEqual(effective.bottomRightSegments, ["feeds", "token_rate", "cache_hit_graph", "pi_stats", "context_graph"]);
+	assert.deepEqual(effective.bottomRightSegments, ["feeds", "token_rate", "pi_stats", "cache_hit_graph", "context_graph"]);
 	assert.deepEqual(bottomRightSegments(effective, true), [
 		"feeds",
 		"token_rate",
-		"cache_hit_graph",
 		"compaction_info",
+		"cache_hit_graph",
 		"compaction_graph",
 	]);
 	assert.equal(bottomRightSegments(effective, false), effective.bottomRightSegments);

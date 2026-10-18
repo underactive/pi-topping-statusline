@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Move Pi's `CH` percentage beside the cache-hit graph and remove its redundant copy from Pi stats while the cache-hit bar is visible
 
+### Fixed
+
+- Restore the cache-hit bar to its position between Pi stats and the context graph in the bottom-right group; the persona-audit pass had silently moved it ahead of Pi stats
+
 ## [0.2.8]
 
 ### Changed

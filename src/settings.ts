@@ -128,8 +128,8 @@ export function resolveEffectiveSettings(settings: StatusLineSettings): Effectiv
 	const bottomRightSegments: StatusLineSegmentId[] = [];
 	if (seg.feeds) bottomRightSegments.push("feeds");
 	if (seg.tokenRate) bottomRightSegments.push("token_rate");
-	if (seg.cacheHitBar) bottomRightSegments.push("cache_hit_graph");
 	if (seg.piStats) bottomRightSegments.push("pi_stats");
+	if (seg.cacheHitBar) bottomRightSegments.push("cache_hit_graph");
 	if (seg.contextBar || seg.contextStats) bottomRightSegments.push("context_graph");
 
 	const rightSegments: StatusLineSegmentId[] = [];
