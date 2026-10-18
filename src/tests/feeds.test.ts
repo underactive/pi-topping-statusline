@@ -1,7 +1,7 @@
 /**
  * Contracts for the feeds segment, which surfaces values other extensions
  * publish as custom session entries. The default subscription targets
- * pi-prompt-cache's savings feed, whose author specified the currency rules.
+ * pi-topping-compact's savings feed, whose author specified the currency rules.
  *
  * Ordering matters here: a publisher emits at turn end or after compaction,
  * both of which require a completed model call, so a live entry is always
@@ -22,7 +22,7 @@ import { theme } from "../theme.ts";
 import type { FeedDisplayState, SegmentContext, StatusLineFeed } from "../types.ts";
 import { feedKey } from "../utils.ts";
 
-const SAVINGS = "pi-prompt-cache/savings";
+const SAVINGS = "pi-topping-compact/savings";
 const OPTIONS = resolveEffectiveSettings({}).segmentOptions;
 const INCLUDE = { git: false, pr: false, piStats: false, tokenRate: false, cacheHit: false, feeds: [SAVINGS] };
 /** Outside any repo, so the builder's git probes stay inert. */
@@ -456,7 +456,7 @@ test("the prefix is literal, so the currency symbol can live in either place", (
 
 // ── settings ───────────────────────────────────────────────────────────────
 
-test("defaults: segment off, seeded with the pi-prompt-cache subscription", () => {
+test("defaults: segment off, seeded with the pi-topping-compact subscription", () => {
 	assert.equal(DEFAULT_SEGMENTS.feeds, false);
 	assert.ok(!resolveEffectiveSettings({}).bottomRightSegments.includes("feeds"));
 	assert.deepEqual(resolveEffectiveSettings({}).segmentOptions.feeds, [
@@ -468,6 +468,12 @@ test("defaults: segment off, seeded with the pi-prompt-cache subscription", () =
 		"cache_hit_graph",
 		"context_graph",
 	]);
+});
+
+test("default settings render a fresh pi-topping-compact savings entry as CS currency", async () => {
+	const include = { ...INCLUDE, feeds: OPTIONS.feeds.map(feed => feed.customType) };
+	const ctx = await contextAfterEmitting(() => [feedEntry({ savedUsd: 1.44 })], include);
+	assert.equal(stripAnsi(SEGMENTS.feeds.render(ctx).content), "CS$1.44");
 });
 
 test("feeds lead the bottom-right group", () => {

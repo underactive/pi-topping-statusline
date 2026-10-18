@@ -251,7 +251,7 @@ const tokenRateSegment: StatusLineSegment = {
 };
 
 /**
- * Half a cent is pi-prompt-cache's own display cutoff. Matching it keeps this
+ * Half a cent is pi-topping-compact's own display cutoff. Matching it keeps this
  * segment and that extension's footer from ever contradicting each other, and
  * suppresses the negative figures published early in a session while the
  * cache-write premium has yet to be amortized by reads.

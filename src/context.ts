@@ -165,7 +165,7 @@ export class SegmentContextBuilder {
 
 	attach(ctx: ExtensionContext): void {
 		this.#ctx = ctx;
-		// A publisher's figure typically covers one process run — pi-prompt-cache
+		// A publisher's figure typically covers one process run — pi-topping-compact
 		// restarts its savings at zero on every session start — while a resumed
 		// session still carries the previous run's entries. Anything predating this
 		// attach belongs to that stale run.

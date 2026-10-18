@@ -65,7 +65,7 @@ and apply live.
 ║  … Bottom Right / Bottom Left groups — 10 more rows            ║
 ║                                                                ║
 ╟─ Feeds ────────────────────────────────────────────────────────╢
-║    1. type         pi-prompt-cache/savings                     ║
+║    1. type         pi-topping-compact/savings                   ║
 ║    1. field        savedUsd                                    ║
 ║    1. prefix       CS                                          ║
 ║    1. format                                     ‹ currency ›  ║
@@ -177,7 +177,7 @@ Each subscription is four fields, all configurable in the settings TUI:
 
 | Field | Meaning | Example |
 | --- | --- | --- |
-| type | the publisher's `customType` | `pi-prompt-cache/savings` |
+| type | the publisher's `customType` | `pi-topping-compact/savings` |
 | field | property of the entry's `data` to read | `savedUsd` |
 | prefix | literal label drawn before the value | `CS` |
 | format | `currency`, `number`, or `text` | `currency` |
@@ -188,7 +188,7 @@ it as `TOK ` when you want `TOK 42`; leading and trailing spaces survive, while 
 sequences and control characters are stripped.
 
 The list ships seeded with the savings feed published by
-[pi-prompt-cache](https://github.com/underactive/pi-prompt-cache), which is where the
+[pi-topping-compact (formerly pi-prompt-cache)](https://github.com/underactive/pi-topping-compact), which is where the
 `currency` rules come from: figures under half a cent are hidden, matching that extension's
 own footer cutoff so the two never disagree. That floor hides the negative values published
 early in a session, before the cache-write premium is amortized by reads. Above the floor,

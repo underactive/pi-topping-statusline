@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Seed the default savings feed with the type published by pi-topping-compact; saved settings retain their own feed list, so edit any saved `pi-prompt-cache/savings` row to use `pi-topping-compact/savings`
 - Restore the cache-hit bar to its position between Pi stats and the context graph in the bottom-right group; the persona-audit pass had silently moved it ahead of Pi stats
 
 ## [0.2.8]

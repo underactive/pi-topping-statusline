@@ -28,11 +28,11 @@ export const BORDER_STYLES: readonly BorderStyle[] = ["rounded", "heavy", "doubl
 export const FEED_FORMATS: readonly FeedFormat[] = ["currency", "number", "text"];
 
 /**
- * Seeded with pi-prompt-cache's published savings feed, so the segment works
+ * Seeded with pi-topping-compact's published savings feed, so the segment works
  * as soon as it is switched on and doubles as a worked example of the shape.
  */
 export const DEFAULT_FEEDS: readonly StatusLineFeed[] = [
-	{ customType: "pi-prompt-cache/savings", field: "savedUsd", prefix: "CS", format: "currency" },
+	{ customType: "pi-topping-compact/savings", field: "savedUsd", prefix: "CS", format: "currency" },
 ];
 
 export const DEFAULT_SEGMENTS: Required<StatusLineSegmentToggles> = {

@@ -26,8 +26,8 @@ export type StatusLineSegmentId =
 
 /**
  * A feed the statusline subscribes to: custom session entries published by
- * another extension under `customType`, as pi-prompt-cache does with
- * "pi-prompt-cache/savings". `field` names the property of the entry's data
+ * another extension under `customType`, as pi-topping-compact does with
+ * "pi-topping-compact/savings". `field` names the property of the entry's data
  * object to display, and `prefix` is the literal label drawn before it.
  */
 export interface StatusLineFeed {
@@ -38,7 +38,7 @@ export interface StatusLineFeed {
 }
 
 /**
- * currency keeps the rules pi-prompt-cache's author specified for the savings
+ * currency keeps the rules pi-topping-compact's author specified for the savings
  * figure: a signed half-cent floor so this segment and that extension's own
  * footer never disagree, two decimals below $100 and whole dollars above.
  */
