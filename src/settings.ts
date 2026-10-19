@@ -3,10 +3,8 @@
  * statusline settings live in a small JSON at
  * ~/.pi/agent/pi-topping-statusline/settings.json.
  */
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { ENTRY_TYPES } from "@underactive/pi-topping-primitives/contracts";
+import { createSettingsStore, sanitize, toppingSettingsPath, type SettingsWriteResult } from "@underactive/pi-topping-primitives/settings";
 import { clampCacheHitCells } from "./cache-hit.js";
 import { theme, type BorderStyle, type SymbolPreset } from "./theme.js";
 import type {
@@ -20,7 +18,8 @@ import type {
 	StatusLineSettings,
 } from "./types.js";
 
-const SETTINGS_PATH = path.join(getAgentDir(), "pi-topping-statusline", "settings.json");
+/** Resolved per call: PI_CODING_AGENT_DIR may change after import. */
+export const settingsPath = toppingSettingsPath("pi-topping-statusline");
 
 export const SEPARATORS: readonly StatusLineSeparatorStyle[] = ["powerline", "powerline-thin", "slash", "pipe", "ascii"];
 const SYMBOL_PRESETS: SymbolPreset[] = ["nerd", "unicode", "ascii"];
@@ -78,42 +77,48 @@ export function sanitizeFeeds(raw: unknown): StatusLineFeed[] {
 	return feeds;
 }
 
-function loadSettings(): StatusLineSettings {
-	try {
-		const raw = JSON.parse(fs.readFileSync(SETTINGS_PATH, "utf8")) as StatusLineSettings;
-		const settings: StatusLineSettings = {};
-		if (typeof raw.transparent === "boolean") settings.transparent = raw.transparent;
-		if (raw.separator && SEPARATORS.includes(raw.separator)) settings.separator = raw.separator;
-		if (raw.symbols && SYMBOL_PRESETS.includes(raw.symbols)) settings.symbols = raw.symbols;
-		if (raw.borderStyle && BORDER_STYLES.includes(raw.borderStyle)) settings.borderStyle = raw.borderStyle;
-		if (raw.segments && typeof raw.segments === "object") {
-			const segments: StatusLineSegmentToggles = {};
-			for (const key of SEGMENT_KEYS) {
-				if (typeof raw.segments[key] === "boolean") segments[key] = raw.segments[key];
-			}
-			settings.segments = segments;
+function sanitizeSettings(parsed: unknown): StatusLineSettings {
+	if (!sanitize.isRecord(parsed)) return {};
+	const raw = parsed as StatusLineSettings;
+	const settings: StatusLineSettings = {};
+	if (typeof raw.transparent === "boolean") settings.transparent = raw.transparent;
+	if (raw.separator && SEPARATORS.includes(raw.separator)) settings.separator = raw.separator;
+	if (raw.symbols && SYMBOL_PRESETS.includes(raw.symbols)) settings.symbols = raw.symbols;
+	if (raw.borderStyle && BORDER_STYLES.includes(raw.borderStyle)) settings.borderStyle = raw.borderStyle;
+	if (raw.segments && typeof raw.segments === "object") {
+		const segments: StatusLineSegmentToggles = {};
+		for (const key of SEGMENT_KEYS) {
+			if (typeof raw.segments[key] === "boolean") segments[key] = raw.segments[key];
 		}
-		if (raw.feeds !== undefined) settings.feeds = sanitizeFeeds(raw.feeds);
-		if (typeof raw.rainbowBorder === "boolean") settings.rainbowBorder = raw.rainbowBorder;
-		if (typeof raw.rainbowAnimation === "boolean") settings.rainbowAnimation = raw.rainbowAnimation;
-		if (typeof raw.nvidiaGreenBorder === "boolean") settings.nvidiaGreenBorder = raw.nvidiaGreenBorder;
-		if (typeof raw.nvidiaGreenAnimation === "boolean") settings.nvidiaGreenAnimation = raw.nvidiaGreenAnimation;
-		if (typeof raw.embedWorkingStatus === "boolean") settings.embedWorkingStatus = raw.embedWorkingStatus;
-		if (typeof raw.embedCompactionProgress === "boolean") settings.embedCompactionProgress = raw.embedCompactionProgress;
-		if (typeof raw.cacheHitBarSegments === "number") settings.cacheHitBarSegments = clampCacheHitCells(raw.cacheHitBarSegments);
-		return settings;
-	} catch {
-		// Missing or corrupt settings.json falls back to defaults.
-		return {};
+		settings.segments = segments;
 	}
+	if (raw.feeds !== undefined) settings.feeds = sanitizeFeeds(raw.feeds);
+	if (typeof raw.rainbowBorder === "boolean") settings.rainbowBorder = raw.rainbowBorder;
+	if (typeof raw.rainbowAnimation === "boolean") settings.rainbowAnimation = raw.rainbowAnimation;
+	if (typeof raw.nvidiaGreenBorder === "boolean") settings.nvidiaGreenBorder = raw.nvidiaGreenBorder;
+	if (typeof raw.nvidiaGreenAnimation === "boolean") settings.nvidiaGreenAnimation = raw.nvidiaGreenAnimation;
+	if (typeof raw.embedWorkingStatus === "boolean") settings.embedWorkingStatus = raw.embedWorkingStatus;
+	if (typeof raw.embedCompactionProgress === "boolean") settings.embedCompactionProgress = raw.embedCompactionProgress;
+	if (typeof raw.cacheHitBarSegments === "number") settings.cacheHitBarSegments = clampCacheHitCells(raw.cacheHitBarSegments);
+	return settings;
 }
 
-/** Atomic write; throws so callers can surface the failure. */
-export function saveSettings(settings: StatusLineSettings): void {
-	fs.mkdirSync(path.dirname(SETTINGS_PATH), { recursive: true });
-	fs.writeFileSync(`${SETTINGS_PATH}.tmp`, `${JSON.stringify(settings, null, "\t")}\n`, { mode: 0o600 });
-	fs.renameSync(`${SETTINGS_PATH}.tmp`, SETTINGS_PATH);
-	fs.chmodSync(SETTINGS_PATH, 0o600);
+const settingsStore = createSettingsStore<StatusLineSettings>({
+	path: settingsPath,
+	codec: {
+		sanitize: sanitizeSettings,
+		serialize: (settings) => `${JSON.stringify(settings, null, "\t")}\n`,
+	},
+});
+
+/** Missing or corrupt settings.json falls back to defaults. */
+export function loadSettings(): StatusLineSettings {
+	return settingsStore.read();
+}
+
+/** Atomic write; the result says whether it landed so callers can surface a failure. */
+export function saveSettings(settings: StatusLineSettings): SettingsWriteResult<StatusLineSettings> {
+	return settingsStore.write(settings);
 }
 
 export function resolveEffectiveSettings(settings: StatusLineSettings): EffectiveStatusLineSettings {

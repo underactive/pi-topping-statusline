@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Settings are read and written by the shared `@underactive/pi-topping-primitives` 0.2.0 settings store. Temp files get unique names (a fixed `.tmp` name could collide between two pi processes), and the file is created 0600 atomically instead of being chmodded afterwards. `saveSettings` returns a result; the menu still shows `Failed to save statusline settings: …` on failure.
 - Adopt `@underactive/pi-topping-primitives` 0.1.0 for shared contracts; this adds a runtime dependency without changing event payloads
 - Move Pi's `CH` percentage beside the cache-hit graph and remove its redundant copy from Pi stats while the cache-hit bar is visible
 
 ### Fixed
 
+- The settings path is resolved on every call instead of once at import, so a `PI_CODING_AGENT_DIR` set after the module loads is honoured.
 - Seed the default savings feed with the type published by pi-topping-compact; saved settings retain their own feed list, so edit any saved `pi-prompt-cache/savings` row to use `pi-topping-compact/savings`
 - Restore the cache-hit bar to its position between Pi stats and the context graph in the bottom-right group; the persona-audit pass had silently moved it ahead of Pi stats
 

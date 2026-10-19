@@ -52,6 +52,6 @@
 		"typescript": "^5.7.0"
 	},
 	"dependencies": {
-		"@underactive/pi-topping-primitives": "^0.1.0"
+		"@underactive/pi-topping-primitives": "^0.2.0"
 	}
 }

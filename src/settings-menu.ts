@@ -428,12 +428,8 @@ export function registerSettingsCommand(
 			const next = valuesToSettings(result.values);
 			applySettings(state, next);
 			onChange();
-			try {
-				saveSettings(next);
-			} catch (err) {
-				const message = err instanceof Error ? err.message : String(err);
-				ctx.ui.notify(`Failed to save statusline settings: ${message}`, "error");
-			}
+			const saved = saveSettings(next);
+			if (!saved.ok) ctx.ui.notify(`Failed to save statusline settings: ${saved.message}`, "error");
 		},
 	});
 }
