@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The settings menu is the shared `@underactive/pi-topping-primitives` 0.4.0 menu instead of a vendored copy. What changes on screen:
+  - The selected row is marked `❯` instead of `>`
+  - Up/down stop at the first and last rows instead of wrapping around, and PgUp/PgDn move one screenful
+  - The overlay is at most 85% of the terminal's height (it was 100%)
+  - Text rows wrap a long label or value onto further lines instead of truncating the label at 16 cells and scrolling the editor's tail
+  - The menu's keys can be remapped in pi's keybindings file under `pi-topping.menu.*` (`up`, `down`, `pageUp`, `pageDown`, `left`, `right`, `toggle`, `apply`, `cancel`, `focusButtons`, `clear`, `editCommit`, `editCancel`, `editBackspace`); the hint row keeps the default key names
+  - If adding or removing a feed fails, the error shows inside the menu instead of closing it
+  - Escape returns the un-applied draft with `applied: false`; the command only reads the values on apply, so cancelling still changes nothing
 - Settings are read and written by the shared `@underactive/pi-topping-primitives` 0.2.0 settings store. Temp files get unique names (a fixed `.tmp` name could collide between two pi processes), and the file is created 0600 atomically instead of being chmodded afterwards. `saveSettings` returns a result; the menu still shows `Failed to save statusline settings: …` on failure.
 - The token-rate monitor's word counter, EMA tracker and hold/fade lifecycle, and the shared fade ease and shade count, now come from `@underactive/pi-topping-primitives` 0.3.0; no visible change
 - Adopt `@underactive/pi-topping-primitives` 0.1.0 for shared contracts; this adds a runtime dependency without changing event payloads

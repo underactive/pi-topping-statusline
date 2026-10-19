@@ -4,12 +4,18 @@
  * menu values, and the command registration.
  */
 import type { ExtensionAPI, ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
+import {
+	showMenu,
+	type MenuItem,
+	type MenuSection,
+	type MenuValue,
+	type PreviewSlot,
+} from "@underactive/pi-topping-primitives/menu";
 import { makeBoxPainters, renderBoxRow } from "./box.js";
 import { CACHE_HIT_MAX_CELLS, CACHE_HIT_MIN_CELLS, clampCacheHitCells, stripCacheHitStat } from "./cache-hit.js";
 import { compactionPreviewView } from "./compaction-embed.js";
 import type { SegmentContextBuilder } from "./context.js";
 import { buildStatusLine } from "./layout.js";
-import { showMenu, type MenuSection, type MenuValue, type PreviewResult } from "./menu.js";
 import { NvidiaGreenBorder, isSwitchyardProvider } from "./nvidia-green.js";
 import { RAINBOW_CYCLE_MS, RAINBOW_FRAME_MS, RainbowBorder } from "./rainbow.js";
 import {
@@ -81,8 +87,8 @@ const SEGMENT_ROWS: readonly {
 	{ id: "tokenRateBottomLeft", label: "Token rate", section: "Bottom Left Segment Group" },
 ];
 
-// Feed rows carry a stable key (independent of on-screen position) so
-// MenuComponent.rebuild's id-keyed value carry-over survives a removal.
+// Feed rows carry a stable key (independent of on-screen position) so the
+// menu's id-keyed value carry-over on a rebuild survives a removal.
 const FEED_PREFIX = "feed";
 const feedKey = (key: number, part: keyof StatusLineFeed) => `${FEED_PREFIX}.${key}.${part}`;
 const ADD_FEED_ID = `${FEED_PREFIX}.add`;
@@ -98,18 +104,18 @@ interface FeedPair {
 const pairsFromFeeds = (feeds: readonly StatusLineFeed[]): FeedPair[] => feeds.map((feed, key) => ({ key, feed }));
 
 function feedSection(pairs: readonly FeedPair[]): MenuSection {
-	const items: MenuSection["items"] = [];
+	const items: MenuItem[] = [];
 	pairs.forEach(({ key, feed }, index) => {
 		const n = index + 1;
 		items.push(
-			{ id: feedKey(key, "customType"), label: `${n}. type`, value: feed.customType, text: true, placeholder: "ext/custom-type" },
-			{ id: feedKey(key, "field"), label: `${n}. field`, value: feed.field, text: true, placeholder: "fieldName" },
-			{ id: feedKey(key, "prefix"), label: `${n}. prefix`, value: feed.prefix, text: true, placeholder: "(none)" },
-			{ id: feedKey(key, "format"), label: `${n}. format`, value: feed.format, cycleValues: FEED_FORMATS },
-			{ id: removeFeedId(key), label: `${n}. remove this feed`, value: false, action: true },
+			{ kind: "text", id: feedKey(key, "customType"), label: `${n}. type`, value: feed.customType, placeholder: "ext/custom-type" },
+			{ kind: "text", id: feedKey(key, "field"), label: `${n}. field`, value: feed.field, placeholder: "fieldName" },
+			{ kind: "text", id: feedKey(key, "prefix"), label: `${n}. prefix`, value: feed.prefix, placeholder: "(none)" },
+			{ kind: "cycle", id: feedKey(key, "format"), label: `${n}. format`, value: feed.format, values: FEED_FORMATS },
+			{ kind: "action", id: removeFeedId(key), label: `${n}. remove this feed` },
 		);
 	});
-	items.push({ id: ADD_FEED_ID, label: "+ add feed", value: false, action: true });
+	items.push({ kind: "action", id: ADD_FEED_ID, label: "+ add feed" });
 	return { title: "Feeds", items };
 }
 
@@ -146,46 +152,54 @@ export function buildSections(settings: StatusLineSettings): MenuSection[] {
 	const global: MenuSection = {
 		title: "Global",
 		items: [
-			{ id: "transparent", label: "Transparent Segments", value: settings.transparent ?? true },
+			{ kind: "toggle", id: "transparent", label: "Transparent Segments", value: settings.transparent ?? true },
 			{
+				kind: "cycle",
 				id: "separator",
 				label: "Separator",
 				value: settings.separator ?? "powerline-thin",
-				cycleValues: SEPARATORS,
+				values: SEPARATORS,
 			},
-			{ id: "symbols", label: "Symbols", value: SYMBOL_LABELS[settings.symbols ?? "nerd"], cycleValues: SYMBOL_VALUES },
+			{ kind: "cycle", id: "symbols", label: "Symbols", value: SYMBOL_LABELS[settings.symbols ?? "nerd"], values: SYMBOL_VALUES },
 			{
+				kind: "cycle",
 				id: "borderStyle",
 				label: "Border style",
 				value: settings.borderStyle ?? "rounded",
-				cycleValues: BORDER_STYLES,
+				values: BORDER_STYLES,
 			},
 			{
+				kind: "toggle",
 				id: "rainbowBorder",
 				label: "Rainbow border on max thinking",
 				value: settings.rainbowBorder ?? true,
 			},
 			{
+				kind: "toggle",
 				id: "rainbowAnimation",
 				label: "Animate rainbow border",
 				value: settings.rainbowAnimation ?? true,
 			},
 			{
+				kind: "toggle",
 				id: "nvidiaGreenBorder",
 				label: "NVIDIA-green when using Switchyard",
 				value: settings.nvidiaGreenBorder ?? true,
 			},
 			{
+				kind: "toggle",
 				id: "nvidiaGreenAnimation",
 				label: "Animate Switchyard green border",
 				value: settings.nvidiaGreenAnimation ?? true,
 			},
 			{
+				kind: "toggle",
 				id: "embedWorkingStatus",
 				label: "Embed status spinners",
 				value: settings.embedWorkingStatus ?? false,
 			},
 			{
+				kind: "toggle",
 				id: "embedCompactionProgress",
 				label: "Embed compaction progress",
 				value: settings.embedCompactionProgress ?? true,
@@ -196,17 +210,18 @@ export function buildSections(settings: StatusLineSettings): MenuSection[] {
 		global,
 		...SECTION_TITLES.map(title => ({
 			title,
-			items: SEGMENT_ROWS.filter(row => row.section === title).flatMap(row => {
-				const item = { id: row.id, label: row.label, value: seg[row.id] };
+			items: SEGMENT_ROWS.filter(row => row.section === title).flatMap((row): MenuItem[] => {
+				const item: MenuItem = { kind: "toggle", id: row.id, label: row.label, value: seg[row.id] };
 				// The bar's length sits right under its on/off toggle.
 				if (row.id !== "cacheHitBar") return [item];
 				return [
 					item,
 					{
+						kind: "cycle",
 						id: "cacheHitBarSegments",
 						label: "CH bar segments",
 						value: String(clampCacheHitCells(settings.cacheHitBarSegments)),
-						cycleValues: CACHE_HIT_CELL_VALUES,
+						values: CACHE_HIT_CELL_VALUES,
 					},
 				];
 			}),
@@ -269,7 +284,8 @@ function cannedFeedData(
 	return data;
 }
 
-class StatusLinePreview {
+/** The menu's preview slot: three rows of the real box, sampled synchronously on every render. */
+class StatusLinePreview implements PreviewSlot<Record<string, MenuValue>> {
 	readonly #builder: SegmentContextBuilder;
 	readonly #uiTheme: Theme;
 
@@ -280,14 +296,12 @@ class StatusLinePreview {
 
 	render(
 		values: Record<string, MenuValue>,
-		elapsedMs: number,
-		activeItemId: string | undefined,
-		innerWidth: number,
-	): PreviewResult {
+		{ elapsedMs, activeItemId, width }: { elapsedMs: number; activeItemId: string | undefined; width: number },
+	): { lines: string[]; nextRefreshInMs?: number } {
 		const effective = resolveEffectiveSettings(valuesToSettings(values));
-		// Preview lines are indented one cell by the menu; mirror renderBoxed's
-		// 6-cell chrome budget for the bars themselves.
-		const boxWidth = Math.max(24, innerWidth - 1);
+		// The menu hands over its full inner width and adds no margin, so the one-cell
+		// indent is added here; mirror renderBoxed's 6-cell chrome budget for the bars.
+		const boxWidth = Math.max(24, width - 1);
 		const barWidth = boxWidth - 6;
 
 		// The theme singleton drives glyph lookups everywhere, so swap the
@@ -378,7 +392,7 @@ class StatusLinePreview {
 						" ".repeat(Math.max(0, boxWidth - 2)) +
 						painters.paint(1, boxWidth - 1, box.vertical),
 					renderBoxRow(painters, bottom, bottomIdx, boxWidth, box.bottomLeft, box.bottomRight),
-				],
+				].map(line => ` ${line}`),
 				// A static colorizer stays at phase zero and needs no repaint timer.
 				nextRefreshInMs: animationOn ? RAINBOW_FRAME_MS : undefined,
 			};
@@ -401,12 +415,11 @@ export function registerSettingsCommand(
 				ctx.ui.notify("/topping-statusline-settings requires TUI mode", "error");
 				return;
 			}
-			const preview = new StatusLinePreview(builder, ctx.ui.theme);
 			const result = await showMenu<Record<string, MenuValue>>(ctx, {
 				title: "Pi Topping Statusline: Settings",
 				sections: buildSections(state.settings),
 				hints: ["↑↓ move", "←→ cycle", "␣ toggle", "⏎ apply/edit", "esc cancel"],
-				preview: preview.render.bind(preview),
+				preview: new StatusLinePreview(builder, ctx.ui.theme),
 				onAction: (id, values) => {
 					const pairs = feedPairsFromValues(values);
 					let nextPairs: FeedPair[];
@@ -415,7 +428,7 @@ export function registerSettingsCommand(
 						nextPairs = [...pairs, { key, feed: { customType: "", field: "", prefix: "", format: "currency" } }];
 					} else {
 						const match = REMOVE_FEED_RE.exec(id);
-						if (!match) return undefined;
+						if (!match) return;
 						const removedKey = Number(match[1]);
 						nextPairs = pairs.filter(p => p.key !== removedKey);
 					}
@@ -424,6 +437,7 @@ export function registerSettingsCommand(
 					return [...buildSections(valuesToSettings(values)).slice(0, -1), feedSection(nextPairs)];
 				},
 			});
+			// Escape hands back the un-applied draft, so the values are only read on apply.
 			if (!result.applied) return;
 			const next = valuesToSettings(result.values);
 			applySettings(state, next);

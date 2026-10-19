@@ -300,15 +300,19 @@ test("the settings menu offers CH bar segments 3–10 under the Cache hit bar to
 	const items = buildSections({}).flatMap(section => section.items);
 	const toggle = items.findIndex(item => item.id === "cacheHitBar");
 	const row = items[toggle + 1]!;
+	assert.equal(row.kind, "cycle");
+	if (row.kind !== "cycle") return;
 	assert.equal(row.id, "cacheHitBarSegments");
 	assert.equal(row.label, "CH bar segments");
 	assert.equal(row.value, "4", "defaults to 4");
-	assert.deepEqual(row.cycleValues, ["3", "4", "5", "6", "7", "8", "9", "10"]);
+	assert.deepEqual(row.values, ["3", "4", "5", "6", "7", "8", "9", "10"]);
 
 	const saved = buildSections({ cacheHitBarSegments: 9 }).flatMap(section => section.items);
-	assert.equal(saved.find(item => item.id === "cacheHitBarSegments")!.value, "9", "shows the saved size");
+	const savedRow = saved.find(item => item.id === "cacheHitBarSegments");
+	assert.equal(savedRow?.kind === "cycle" && savedRow.value, "9", "shows the saved size");
 
-	const values = Object.fromEntries(saved.map(item => [item.id, item.value]));
+	// Action rows hold no value, so only value-bearing rows seed the draft.
+	const values = Object.fromEntries(saved.flatMap(item => ("value" in item ? [[item.id, item.value]] : [])));
 	assert.equal(valuesToSettings({ ...values, cacheHitBarSegments: "7" }).cacheHitBarSegments, 7);
 	assert.equal(valuesToSettings({ ...values, cacheHitBarSegments: "garbage" }).cacheHitBarSegments, 4);
 });
