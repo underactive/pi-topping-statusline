@@ -14,7 +14,7 @@ import { buildStatusLine } from "../layout.ts";
 import { SEGMENTS } from "../segments.ts";
 import { getSeparator } from "../separators.ts";
 import { resolveEffectiveSettings, topLeftSegments } from "../settings.ts";
-import { easeFade, theme } from "../theme.ts";
+import { theme } from "../theme.ts";
 import type { SegmentContext, StatusLineSegmentId } from "../types.ts";
 
 const noGap = (s: string) => s;
@@ -205,12 +205,6 @@ test("fadeAnsi leaves text untouched at full opacity and sinks colors into the b
 		sunk,
 		`${theme.getFgAnsi("statusLineBg")}A${theme.getFgAnsi("statusLineBg")} ${theme.getBgAnsi()}B\x1b[49m`,
 	);
-});
-
-test("easeFade is monotonic and pinned at both ends", () => {
-	assert.equal(easeFade(0), 0);
-	assert.equal(easeFade(1), 1);
-	assert.ok(easeFade(0.25) < easeFade(0.5) && easeFade(0.5) < easeFade(0.75));
 });
 
 test("leftFade recolors the working status but not pi or model details", () => {

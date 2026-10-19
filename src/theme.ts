@@ -9,6 +9,7 @@
  * (numbers), or "" for the terminal default color.
  */
 import { getTerminalColorMode } from "@earendil-works/pi-tui";
+import { easeFade, FADE_SHADE_COUNT } from "@underactive/pi-topping-primitives/activity";
 
 export type SymbolPreset = "unicode" | "nerd" | "ascii";
 
@@ -245,20 +246,13 @@ export function parseHex(hex: string): [number, number, number] | undefined {
 	return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
 }
 
-/** Number of discrete, eased shades used for the token-rate and feed fades (pi-topping). */
-export const FADE_SHADE_COUNT = 5;
+export { easeFade, FADE_SHADE_COUNT } from "@underactive/pi-topping-primitives/activity";
 
 /** Stand-in for the terminal's default foreground when a fade must recolor it. */
 const DEFAULT_FG_RGB: [number, number, number] = [204, 204, 204];
 
 /** Every SGR color the layout or a segment can emit: truecolor, 256-color, or the default-fg reset. */
 const SGR_COLOR_RE = /\x1b\[(38|48);2;(\d+);(\d+);(\d+)m|\x1b\[(38|48);5;(\d+)m|\x1b\[39m/g;
-
-/** Raised-cosine ease shared by the discrete and continuous fades. */
-export function easeFade(progress: number): number {
-	const clamped = Math.max(0, Math.min(1, progress));
-	return 0.5 * (1 - Math.cos(Math.PI * clamped));
-}
 
 /** Resolve an xterm-256 palette index to RGB (16–231 cube, 232–255 grayscale). */
 function xterm256ToRgb(n: number): [number, number, number] {

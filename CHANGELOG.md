@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Settings are read and written by the shared `@underactive/pi-topping-primitives` 0.2.0 settings store. Temp files get unique names (a fixed `.tmp` name could collide between two pi processes), and the file is created 0600 atomically instead of being chmodded afterwards. `saveSettings` returns a result; the menu still shows `Failed to save statusline settings: …` on failure.
+- The token-rate monitor's word counter, EMA tracker and hold/fade lifecycle, and the shared fade ease and shade count, now come from `@underactive/pi-topping-primitives` 0.3.0; no visible change
 - Adopt `@underactive/pi-topping-primitives` 0.1.0 for shared contracts; this adds a runtime dependency without changing event payloads
 - Move Pi's `CH` percentage beside the cache-hit graph and remove its redundant copy from Pi stats while the cache-hit bar is visible
 
