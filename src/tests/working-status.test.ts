@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { WORKING_STATUS_SLIDE_MS } from "@underactive/pi-topping-primitives/contracts";
 import {
 	STATUS_HOLD_MS,
-	STATUS_SLIDE_MS,
 	type StatusIndicatorKind,
 	StatusTransition,
 	WORKING_FADE_MS,
@@ -10,7 +10,7 @@ import {
 
 /** Show a status early enough that its slide-out has finished by `at`. */
 function settle(transition: StatusTransition, status: string, kind: StatusIndicatorKind | undefined, at: number): void {
-	transition.resolve(status, kind, at - STATUS_SLIDE_MS);
+	transition.resolve(status, kind, at - WORKING_STATUS_SLIDE_MS);
 	transition.resolve(status, kind, at);
 }
 
@@ -24,24 +24,24 @@ test("a status appearing over the user's segments slides out, then settles verba
 		pending: true,
 	});
 	// Spinner frames change the text mid-slide without restarting it.
-	const early = transition.resolve("⠹ Working", "working", 1_000 + STATUS_SLIDE_MS / 4).reveal ?? -1;
-	const late = transition.resolve("⠸ Working", "working", 1_000 + (STATUS_SLIDE_MS * 3) / 4).reveal ?? -1;
+	const early = transition.resolve("⠹ Working", "working", 1_000 + WORKING_STATUS_SLIDE_MS / 4).reveal ?? -1;
+	const late = transition.resolve("⠸ Working", "working", 1_000 + (WORKING_STATUS_SLIDE_MS * 3) / 4).reveal ?? -1;
 	assert.ok(0 < early && early < late && late < 1, "reveal grows monotonically");
-	assert.equal(transition.pending(1_000 + STATUS_SLIDE_MS - 1), true);
+	assert.equal(transition.pending(1_000 + WORKING_STATUS_SLIDE_MS - 1), true);
 
-	assert.deepEqual(transition.resolve("⠼ Working", "working", 1_000 + STATUS_SLIDE_MS), {
+	assert.deepEqual(transition.resolve("⠼ Working", "working", 1_000 + WORKING_STATUS_SLIDE_MS), {
 		status: "⠼ Working",
 		kind: "working",
 		pending: false,
 	});
-	assert.equal(transition.pending(1_000 + STATUS_SLIDE_MS), false);
+	assert.equal(transition.pending(1_000 + WORKING_STATUS_SLIDE_MS), false);
 });
 
 test("a status cleared mid-slide keeps sliding through its hold", () => {
 	const transition = new StatusTransition();
 	transition.resolve("⠙ Working", "working", 0);
 
-	const clearedAt = STATUS_SLIDE_MS / 4;
+	const clearedAt = WORKING_STATUS_SLIDE_MS / 4;
 	const cleared = transition.resolve(undefined, undefined, clearedAt);
 	const held = transition.resolve(undefined, undefined, clearedAt + STATUS_HOLD_MS / 2);
 	assert.equal(held.status, "⠙ Working");
