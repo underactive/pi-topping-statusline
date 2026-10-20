@@ -4,12 +4,15 @@
  * band its own position falls into, so the graph's gradient matches the bar's
  * context percentage color at every fill level.
  */
+import {
+	BAR_CELLS as CELLS,
+	BAR_FILLED as FILLED,
+	BAR_TROUGH as TROUGH,
+} from "@underactive/pi-topping-primitives/color";
 import { formatContextUsage, getContextUsageLevel, getContextUsageThemeColor } from "./context-thresholds.js";
 import { theme } from "./theme.js";
 
-export const CELLS = 20;
-export const FILLED = "\u258b";
-export const TROUGH = "\u2591";
+export { CELLS, FILLED, TROUGH };
 
 const cellColor = (percent: number, contextWindow: number): string =>
 	theme.getFgAnsi(getContextUsageThemeColor(getContextUsageLevel(percent, contextWindow)));

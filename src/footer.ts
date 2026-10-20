@@ -2,11 +2,9 @@
  * Pure helpers for parsing host-rendered rows: the editor's plain ─── border
  * rows (with or without the scroll hint) and the default footer's stats line.
  */
-const ANSI_RE = /\x1b\[[0-9;]*m/g;
+import { stripSgr as stripAnsi } from "@underactive/pi-topping-primitives/text";
 
-export function stripAnsi(str: string): string {
-	return str.replace(ANSI_RE, "");
-}
+export { stripAnsi };
 
 /** Drop host footer rows that contain only whitespace or SGR control codes. */
 export function filterVisibleRows(rows: readonly string[]): string[] {

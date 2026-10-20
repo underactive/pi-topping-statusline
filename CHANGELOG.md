@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Colour maths, the compaction bar and the box and rainbow border colours now come from `@underactive/pi-topping-primitives` 0.6.0 (`./color`, `./text`, `./glyphs`): the 256-colour conversion, hue conversion, the working-group fade, the comet bar, the Switchyard palette, the border glyph tables, `stripAnsi` and `sanitizeLabel` are no longer vendored. Rendered output is unchanged, checked byte for byte across the theme palette in both colour modes, the fade, both borders and the bar.
 - The settings menu is the shared `@underactive/pi-topping-primitives` 0.4.0 menu instead of a vendored copy. What changes on screen:
   - The selected row is marked `❯` instead of `>`
   - Up/down stop at the first and last rows instead of wrapping around, and PgUp/PgDn move one screenful

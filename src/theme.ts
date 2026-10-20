@@ -8,21 +8,22 @@
  * embedded here. Values are hex strings (truecolor), 256-palette indices
  * (numbers), or "" for the terminal default color.
  */
-import { getTerminalColorMode } from "@earendil-works/pi-tui";
+import { getTerminalColorMode, type TerminalColorMode } from "@earendil-works/pi-tui";
 import { easeFade, FADE_SHADE_COUNT } from "@underactive/pi-topping-primitives/activity";
+import {
+	channelsToFgAnsi,
+	fadeRgbToward,
+	hexToFgAnsi as sharedHexToFgAnsi,
+	parseHex,
+	xterm256ToRgb,
+} from "@underactive/pi-topping-primitives/color";
+import { ASCII_BOX, BOX_STYLES, type BoxGlyphs, type BoxStyle } from "@underactive/pi-topping-primitives/glyphs";
+
+export type { BoxGlyphs };
 
 export type SymbolPreset = "unicode" | "nerd" | "ascii";
 
-export type BorderStyle = "rounded" | "heavy" | "double" | "single";
-
-export interface BoxGlyphs {
-	topLeft: string;
-	topRight: string;
-	bottomLeft: string;
-	bottomRight: string;
-	horizontal: string;
-	vertical: string;
-}
+export type BorderStyle = BoxStyle;
 
 export interface StatusSymbols {
 	sep: {
@@ -162,16 +163,6 @@ const SYMBOL_PRESETS: Record<SymbolPreset, StatusSymbols> = {
 	ascii: ASCII_SYMBOLS,
 };
 
-const ASCII_BOX: BoxGlyphs = { topLeft: "+", topRight: "+", bottomLeft: "+", bottomRight: "+", horizontal: "-", vertical: "|" };
-
-/** Same glyphs as pi-topping's User Prompt border style. */
-const BOX_STYLES: Record<BorderStyle, BoxGlyphs> = {
-	rounded: { topLeft: "╭", topRight: "╮", bottomLeft: "╰", bottomRight: "╯", horizontal: "─", vertical: "│" },
-	heavy: { topLeft: "┏", topRight: "┓", bottomLeft: "┗", bottomRight: "┛", horizontal: "━", vertical: "┃" },
-	double: { topLeft: "╔", topRight: "╗", bottomLeft: "╚", bottomRight: "╝", horizontal: "═", vertical: "║" },
-	single: { topLeft: "┌", topRight: "┐", bottomLeft: "└", bottomRight: "┘", horizontal: "─", vertical: "│" },
-};
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Palette (OMP dark.json)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -232,81 +223,32 @@ export const MAJOR_COLOR_HEXES = [
 	"#00afaf",
 ];
 
-export type ColorMode = "truecolor" | "256color";
+export type ColorMode = TerminalColorMode;
 
 /** Defer to pi's cached terminal detection, which honors PI_TRUE_COLOR, terminal.trueColor, and capability overrides. */
 export function detectColorMode(): ColorMode {
 	return getTerminalColorMode();
 }
 
-export function parseHex(hex: string): [number, number, number] | undefined {
-	const match = /^#?([0-9a-f]{6})$/i.exec(hex);
-	if (!match) return undefined;
-	const n = Number.parseInt(match[1], 16);
-	return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
-}
-
 export { easeFade, FADE_SHADE_COUNT } from "@underactive/pi-topping-primitives/activity";
-
-/** Stand-in for the terminal's default foreground when a fade must recolor it. */
-const DEFAULT_FG_RGB: [number, number, number] = [204, 204, 204];
-
-/** Every SGR color the layout or a segment can emit: truecolor, 256-color, or the default-fg reset. */
-const SGR_COLOR_RE = /\x1b\[(38|48);2;(\d+);(\d+);(\d+)m|\x1b\[(38|48);5;(\d+)m|\x1b\[39m/g;
-
-/** Resolve an xterm-256 palette index to RGB (16–231 cube, 232–255 grayscale). */
-function xterm256ToRgb(n: number): [number, number, number] {
-	if (n >= 232) {
-		const v = 8 + (n - 232) * 10;
-		return [v, v, v];
-	}
-	const i = Math.max(0, n - 16);
-	const c = (v: number) => (v === 0 ? 0 : 55 + v * 51);
-	return [c(Math.floor(i / 36) % 6), c(Math.floor(i / 6) % 6), c(i % 6)];
-}
 
 function colorValueToRgb(color: ColorValue): [number, number, number] {
 	if (typeof color === "number") return xterm256ToRgb(color);
 	return parseHex(color) ?? [0, 0, 0];
 }
 
-function rgbTo256(r: number, g: number, b: number): number {
-	if (r === g && g === b) {
-		if (r < 8) return 16;
-		if (r > 248) return 231;
-		return 232 + Math.round(((r - 8) / 247) * 24);
-	}
-	const scale = (v: number) => Math.round((v / 255) * 5);
-	return 16 + 36 * scale(r) + 6 * scale(g) + scale(b);
-}
+/** The bar background as a tuple, resolved once at load: `fadeAnsi` sinks colours toward it on every tick. */
+const STATUS_LINE_BG_RGB = colorValueToRgb(STATUS_LINE_BG);
 
-export function mixRgb(
-	from: readonly [number, number, number],
-	to: readonly [number, number, number],
-	amount: number,
-): [number, number, number] {
-	const clamped = Math.min(1, Math.max(0, amount));
-	return [
-		Math.round(from[0] + (to[0] - from[0]) * clamped),
-		Math.round(from[1] + (to[1] - from[1]) * clamped),
-		Math.round(from[2] + (to[2] - from[2]) * clamped),
-	];
-}
-
-export function rgbToFgAnsi(r: number, g: number, b: number, mode: ColorMode): string {
-	return mode === "truecolor" ? `\x1b[38;2;${r};${g};${b}m` : `\x1b[38;5;${rgbTo256(r, g, b)}m`;
-}
-
+/** `#rrggbb` as a foreground escape, in the terminal's colour depth unless the caller passes one. */
 export function hexToFgAnsi(hex: string, mode: ColorMode = detectColorMode()): string {
-	const rgb = parseHex(hex);
-	if (!rgb) return "";
-	return rgbToFgAnsi(...rgb, mode);
+	return sharedHexToFgAnsi(hex, mode);
 }
 
 function fgAnsi(color: ColorValue, mode: ColorMode): string {
 	if (color === "") return "\x1b[39m";
 	if (typeof color === "number") return `\x1b[38;5;${color}m`;
-	return hexToFgAnsi(color, mode);
+	return sharedHexToFgAnsi(color, mode);
 }
 
 function bgAnsi(color: ColorValue, mode: ColorMode): string {
@@ -398,7 +340,7 @@ class StatusTheme {
 		const r = Math.round(a[0] * (1 - eased) + b[0] * eased);
 		const g = Math.round(a[1] * (1 - eased) + b[1] * eased);
 		const bl = Math.round(a[2] * (1 - eased) + b[2] * eased);
-		const ansi = rgbToFgAnsi(r, g, bl, this.#currentMode());
+		const ansi = channelsToFgAnsi(r, g, bl, this.#currentMode());
 		return `${ansi}${text}\x1b[39m`;
 	}
 
@@ -413,22 +355,7 @@ class StatusTheme {
 	fadeAnsi(text: string, opacity: number): string {
 		const alpha = Math.max(0, Math.min(1, opacity));
 		if (alpha >= 1) return text;
-		const target = colorValueToRgb(STATUS_LINE_BG);
-		const mode = this.#currentMode();
-		return text.replace(SGR_COLOR_RE, (_m, tcPlane, r, g, b, ixPlane, index) => {
-			let plane = "38";
-			let rgb: [number, number, number] = DEFAULT_FG_RGB;
-			if (tcPlane) {
-				plane = tcPlane;
-				rgb = [Number(r), Number(g), Number(b)];
-			} else if (ixPlane) {
-				plane = ixPlane;
-				rgb = xterm256ToRgb(Number(index));
-			}
-			const mix = (i: number) => Math.round(rgb[i] * alpha + target[i] * (1 - alpha));
-			const fg = rgbToFgAnsi(mix(0), mix(1), mix(2), mode);
-			return plane === "38" ? fg : fg.replace("\x1b[38;", "\x1b[48;");
-		});
+		return fadeRgbToward(text, STATUS_LINE_BG_RGB, alpha, this.#currentMode());
 	}
 }
 

@@ -4,10 +4,11 @@
  * session-color.ts, tools/render-utils.ts, modes/shared.ts). Bun.color is
  * replaced with local hex math so this runs under any pi runtime.
  */
-import { stripVTControlCharacters } from "node:util";
-import { sliceByColumn, visibleWidth } from "@earendil-works/pi-tui";
-import { parseHex } from "./theme.js";
-import { hslToRgb, rgbToHex } from "./rainbow.js";
+import { colorToHex, rgbColor, sliceByColumn, visibleWidth } from "@earendil-works/pi-tui";
+import { hslToRgb, parseHex } from "@underactive/pi-topping-primitives/color";
+import { sanitizeLabel } from "@underactive/pi-topping-primitives/text";
+
+export { sanitizeLabel };
 
 export function formatNumber(n: number): string {
 	if (n < 1_000) return n.toString();
@@ -66,16 +67,6 @@ export function clampPathLength(pwd: string, maxLen: number): string {
 /** Strip ANSI/VT escapes, map control chars to spaces, collapse whitespace. */
 export function sanitizeStatusText(text: string): string {
 	return sanitizeLabel(text).trim();
-}
-
-/**
- * Same safety as {@link sanitizeStatusText} but without trimming, so a label
- * written as "TOK " keeps the space that separates it from its value.
- */
-export function sanitizeLabel(text: string): string {
-	return stripVTControlCharacters(text)
-		.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069\ufeff]/g, " ")
-		.replace(/ +/g, " ");
 }
 
 export function withIcon(icon: string, text: string): string {
@@ -149,5 +140,5 @@ export function getSessionAccentHex(name: string, themeColorHexes: string[]): st
 	let targetHue = DARK_HUE_START + (nameToHue(name) % range);
 	const themeHues = themeColorHexes.map(hexToHue).filter((h): h is number => h !== undefined);
 	targetHue = findSafeHue(targetHue, themeHues, DARK_HUE_START, DARK_HUE_END);
-	return rgbToHex(hslToRgb(targetHue, ACCENT_SATURATION, ACCENT_DARK_LIGHTNESS));
+	return colorToHex(rgbColor(...hslToRgb(targetHue, ACCENT_SATURATION, ACCENT_DARK_LIGHTNESS)));
 }

@@ -12,7 +12,8 @@
  * (renderBoxed in index.ts) or construct a fresh instance with a phase
  * derived from elapsed time (the settings preview).
  */
-import { detectColorMode, rgbToFgAnsi, type ColorMode } from "./theme.js";
+import { hslToRgb, rgbToFgAnsi, wrapDeg } from "@underactive/pi-topping-primitives/color";
+import { detectColorMode, type ColorMode } from "./theme.js";
 
 /** Frame cadence of the sweep (also the settings-preview refresh delay). */
 export const RAINBOW_FRAME_MS = 50;
@@ -24,9 +25,6 @@ export const RAINBOW_DEG_PER_FRAME = (360 * RAINBOW_FRAME_MS) / RAINBOW_CYCLE_MS
 const SATURATION = 1;
 const LIGHTNESS = 0.62;
 const ansiByHueByMode = new Map<ColorMode, string[]>();
-
-/** Normalize a degree value into the [0, 360) range. */
-export const wrapDeg = (deg: number): number => ((deg % 360) + 360) % 360;
 
 /**
  * Number of border cells in the box (rows 0..bottomIdx, cols 0..width-1):
@@ -48,24 +46,6 @@ export function perimeterPosition(row: number, col: number, width: number, botto
 	if (row === bottomIdx) return 2 * width + bottomIdx - 2 - col;
 	if (col === width - 1) return width - 1 + row;
 	return 2 * width + 2 * bottomIdx - 2 - row; // col === 0
-}
-
-export function hslToRgb(h: number, s: number, l: number): [number, number, number] {
-	const c = (1 - Math.abs(2 * l - 1)) * s;
-	const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-	const m = l - c / 2;
-	let rgb: [number, number, number];
-	if (h < 60) rgb = [c, x, 0];
-	else if (h < 120) rgb = [x, c, 0];
-	else if (h < 180) rgb = [0, c, x];
-	else if (h < 240) rgb = [0, x, c];
-	else if (h < 300) rgb = [x, 0, c];
-	else rgb = [c, 0, x];
-	return [Math.round((rgb[0] + m) * 255), Math.round((rgb[1] + m) * 255), Math.round((rgb[2] + m) * 255)];
-}
-
-export function rgbToHex([r, g, b]: [number, number, number]): string {
-	return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
 export interface BorderColorizer {
@@ -107,7 +87,7 @@ export class RainbowBorder implements BorderColorizer {
 		const bucket = Math.round(hue) % 360;
 		let ansi = ansiByHue[bucket];
 		if (ansi === undefined) {
-			ansi = rgbToFgAnsi(...hslToRgb(bucket, SATURATION, LIGHTNESS), mode);
+			ansi = rgbToFgAnsi(hslToRgb(bucket, SATURATION, LIGHTNESS), mode);
 			ansiByHue[bucket] = ansi;
 		}
 		return ansi;

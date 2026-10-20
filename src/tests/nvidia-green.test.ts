@@ -4,18 +4,9 @@ import {
 	NVIDIA_GREEN_DARK_HEX,
 	NVIDIA_GREEN_HEX,
 	NvidiaGreenBorder,
-	isSwitchyardProvider,
 } from "../nvidia-green.ts";
 import { resolveEffectiveSettings } from "../settings.ts";
 import { detectColorMode, hexToFgAnsi } from "../theme.ts";
-
-test("recognizes the Switchyard provider case-insensitively after trimming", () => {
-	assert.equal(isSwitchyardProvider("switchyard"), true);
-	assert.equal(isSwitchyardProvider(" Switchyard "), true);
-	assert.equal(isSwitchyardProvider(undefined), false);
-	assert.equal(isSwitchyardProvider(""), false);
-	assert.equal(isSwitchyardProvider("other"), false);
-});
 
 test("switchyard green settings default to true and resolve explicit false", () => {
 	const defaults = resolveEffectiveSettings({});
