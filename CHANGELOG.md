@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Colour maths, the compaction bar and the box and rainbow border colours now come from `@underactive/pi-topping-primitives` 0.6.0 (`./color`, `./text`, `./glyphs`): the 256-colour conversion, hue conversion, the working-group fade, the comet bar, the Switchyard palette, the border glyph tables, `stripAnsi` and `sanitizeLabel` are no longer vendored. Rendered output is unchanged, checked byte for byte across the theme palette in both colour modes, the fade, both borders and the bar.
+- Colour maths, the compaction bar and the box and rainbow border colours moved to `@underactive/pi-topping-primitives` 0.6.0 (`./color`, `./text`, `./glyphs`): the 256-colour conversion, hue conversion, the working-group fade, the comet bar, the Switchyard palette, the border glyph tables, `stripAnsi` and `sanitizeLabel` are no longer vendored. Output for that 0.6.0 move is unchanged, checked byte for byte across the theme palette in both colour modes, the fade, both borders and the bar; the 0.7.0 cube correction below changes the fade of indexed 256-colour segments.
 - The settings menu is the shared `@underactive/pi-topping-primitives` 0.4.0 menu instead of a vendored copy. What changes on screen:
   - The selected row is marked `❯` instead of `>`
   - Up/down stop at the first and last rows instead of wrapping around, and PgUp/PgDn move one screenful
@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The working-group fade now starts git indicators (`*N`, `+N`, `?N`) at the colour the terminal draws. Previously they started brighter: a faded `?N` could emit a truecolor channel above 255, and in 256-colour mode `?N` briefly turned green and `*N` gold. Fixed by `@underactive/pi-topping-primitives` 0.7.0.
 - The settings path is resolved on every call instead of once at import, so a `PI_CODING_AGENT_DIR` set after the module loads is honoured.
 - Seed the default savings feed with the type published by pi-topping-compact; saved settings retain their own feed list, so edit any saved `pi-prompt-cache/savings` row to use `pi-topping-compact/savings`
 - Restore the cache-hit bar to its position between Pi stats and the context graph in the bottom-right group; the persona-audit pass had silently moved it ahead of Pi stats

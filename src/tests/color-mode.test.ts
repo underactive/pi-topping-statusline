@@ -87,6 +87,26 @@ test("pi capability overrides take precedence over terminal hints", () => {
 	}
 });
 
+test("the working-group fade keeps the git indicators' hues in both colour modes", () => {
+	try {
+		forceTrueColor(false);
+		const untracked256 = theme.fadeAnsi(theme.fg("statusLineUntracked", "?1"), 0.9);
+		const dirty256 = theme.fadeAnsi(theme.fg("statusLineDirty", "*1"), 0.9);
+		forceTrueColor(true);
+		const untrackedTruecolor = theme.fadeAnsi(
+			theme.fg("statusLineUntracked", "?1"),
+			0.9,
+		);
+		const actual = [untracked256, dirty256, untrackedTruecolor];
+		const details = `actual fades: ${JSON.stringify(actual)}`;
+		assert.ok(untracked256.startsWith("\x1b[38;5;39m?1"), details);
+		assert.ok(dirty256.startsWith("\x1b[38;5;178m*1"), details);
+		assert.ok(untrackedTruecolor.startsWith("\x1b[38;2;2;159;231m?1"), details);
+	} finally {
+		resetCapabilities();
+	}
+});
+
 test("PI_TRUE_COLOR controls capability detection", () => {
 	const previousTrueColor = process.env.PI_TRUE_COLOR;
 	const previousHyperlinks = process.env.PI_HYPERLINKS;
