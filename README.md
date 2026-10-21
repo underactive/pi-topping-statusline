@@ -188,7 +188,7 @@ it as `TOK ` when you want `TOK 42`; leading and trailing spaces survive, while 
 sequences and control characters are stripped.
 
 The list ships seeded with the savings feed published by
-[pi-topping-compact (formerly pi-prompt-cache)](https://github.com/underactive/pi-topping-compact), which is where the
+pi-topping-compact (formerly pi-prompt-cache, a private extension), which is where the
 `currency` rules come from: figures under half a cent are hidden, matching that extension's
 own footer cutoff so the two never disagree. That floor hides the negative values published
 early in a session, before the cache-write premium is amortized by reads. Above the floor,
