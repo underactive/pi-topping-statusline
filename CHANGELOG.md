@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Depend on `@underactive/pi-topping-primitives` `^0.10.0` (was `^0.7.0`). Nothing the status line imports changed in between: 0.8.0 to 0.10.0 added `./process`, `./env` and `./abort`, which it does not use, and 0.10.0 removed only the `pi-topping-compact` entry names that the feeds list no longer references. No visible change.
 - Colour maths, the compaction bar and the box and rainbow border colours moved to `@underactive/pi-topping-primitives` 0.6.0 (`./color`, `./text`, `./glyphs`): the 256-colour conversion, hue conversion, the working-group fade, the comet bar, the Switchyard palette, the border glyph tables, `stripAnsi` and `sanitizeLabel` are no longer vendored. Output for that 0.6.0 move is unchanged, checked byte for byte across the theme palette in both colour modes, the fade, both borders and the bar; the 0.7.0 cube correction below changes the fade of indexed 256-colour segments.
 - The settings menu is the shared `@underactive/pi-topping-primitives` 0.4.0 menu instead of a vendored copy. What changes on screen:
   - The selected row is marked `❯` instead of `>`
