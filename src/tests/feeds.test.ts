@@ -1,7 +1,8 @@
 /**
  * Contracts for the feeds segment, which surfaces values other extensions
- * publish as custom session entries. The default subscription targets
- * pi-topping-compact's savings feed, whose author specified the currency rules.
+ * publish as custom session entries. The currency rules are those of
+ * pi-topping-compact's savings feed, whose author specified them. No
+ * subscription ships by default, so every test here passes its feeds explicitly.
  *
  * Ordering matters here: a publisher emits at turn end or after compaction,
  * both of which require a completed model call, so a live entry is always
@@ -23,7 +24,10 @@ import type { FeedDisplayState, SegmentContext, StatusLineFeed } from "../types.
 import { feedKey } from "../utils.ts";
 
 const SAVINGS = "pi-topping-compact/savings";
-const OPTIONS = resolveEffectiveSettings({}).segmentOptions;
+/** The subscription the old default seeded, passed explicitly now that no default ships. */
+const OPTIONS = resolveEffectiveSettings({
+	feeds: [{ customType: SAVINGS, field: "savedUsd", prefix: "CS", format: "currency" }],
+}).segmentOptions;
 const INCLUDE = { git: false, pr: false, piStats: false, tokenRate: false, cacheHit: false, feeds: [SAVINGS] };
 /** Outside any repo, so the builder's git probes stay inert. */
 const CWD = "/tmp/pi-topping-statusline-tests";
@@ -56,13 +60,14 @@ const feedEntry = (data: unknown, customType = SAVINGS, timestamp = new Date().t
 async function contextAfterEmitting(
 	makeEntries: () => SessionEntry[],
 	include = INCLUDE,
+	options = OPTIONS,
 ): Promise<SegmentContext> {
 	const entries: SessionEntry[] = [];
 	const builder = new SegmentContextBuilder(fakePi);
 	builder.attach(fakeCtx(entries));
 	await sleep(3);
 	entries.push(...makeEntries());
-	return builder.build(80, OPTIONS, include, undefined);
+	return builder.build(80, options, include, undefined);
 }
 
 const BASE = await contextAfterEmitting(() => []);
@@ -456,12 +461,10 @@ test("the prefix is literal, so the currency symbol can live in either place", (
 
 // ── settings ───────────────────────────────────────────────────────────────
 
-test("defaults: segment off, seeded with the pi-topping-compact subscription", () => {
+test("defaults: segment off, no subscriptions", () => {
 	assert.equal(DEFAULT_SEGMENTS.feeds, false);
 	assert.ok(!resolveEffectiveSettings({}).bottomRightSegments.includes("feeds"));
-	assert.deepEqual(resolveEffectiveSettings({}).segmentOptions.feeds, [
-		{ customType: SAVINGS, field: "savedUsd", prefix: "CS", format: "currency" },
-	]);
+	assert.deepEqual(resolveEffectiveSettings({}).segmentOptions.feeds, []);
 	assert.deepEqual(resolveEffectiveSettings({ segments: { feeds: true } }).bottomRightSegments, [
 		"feeds",
 		"pi_stats",
@@ -470,10 +473,18 @@ test("defaults: segment off, seeded with the pi-topping-compact subscription", (
 	]);
 });
 
-test("default settings render a fresh pi-topping-compact savings entry as CS currency", async () => {
-	const include = { ...INCLUDE, feeds: OPTIONS.feeds.map(feed => feed.customType) };
-	const ctx = await contextAfterEmitting(() => [feedEntry({ savedUsd: 1.44 })], include);
+test("a saved subscription renders a fresh entry as CS currency", async () => {
+	const { segmentOptions } = resolveEffectiveSettings({ feeds: [savingsFeed("currency", "CS")] });
+	const include = { ...INCLUDE, feeds: segmentOptions.feeds.map(feed => feed.customType) };
+	const ctx = await contextAfterEmitting(() => [feedEntry({ savedUsd: 1.44 })], include, segmentOptions);
 	assert.equal(stripAnsi(SEGMENTS.feeds.render(ctx).content), "CS$1.44");
+});
+
+test("an entry nobody subscribed to renders nothing under the default settings", async () => {
+	const { segmentOptions } = resolveEffectiveSettings({});
+	const include = { ...INCLUDE, feeds: segmentOptions.feeds.map(feed => feed.customType) };
+	const ctx = await contextAfterEmitting(() => [feedEntry({ savedUsd: 1.44 })], include, segmentOptions);
+	assert.equal(SEGMENTS.feeds.render(ctx).visible, false);
 });
 
 test("feeds lead the bottom-right group", () => {

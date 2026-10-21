@@ -129,18 +129,18 @@ test("the settings command mounts the shared menu; adding a feed and applying sa
 			assert.equal(menu.snapshot().cursorId, "feed.add", "the cursor keeps its row across the rebuild");
 
 			for (let i = 0; i < 5; i++) menu.handleInput(KEY.up);
-			assert.equal(menu.snapshot().cursorId, "feed.1.customType");
+			assert.equal(menu.snapshot().cursorId, "feed.0.customType");
 			menu.handleInput(KEY.enter);
 			typeText(menu, "my-ext/tokens");
 			menu.handleInput(KEY.enter);
 			menu.handleInput(KEY.down);
-			assert.equal(menu.snapshot().cursorId, "feed.1.field");
+			assert.equal(menu.snapshot().cursorId, "feed.0.field");
 			menu.handleInput(KEY.enter);
 			typeText(menu, "count");
 			menu.handleInput(KEY.enter);
 			menu.handleInput(KEY.down);
 			menu.handleInput(KEY.down);
-			assert.equal(menu.snapshot().cursorId, "feed.1.format");
+			assert.equal(menu.snapshot().cursorId, "feed.0.format");
 			menu.handleInput(KEY.right); // currency -> number
 			assert.ok(plain(menu).some(line => line.includes("my-ext/tokens")), "the committed text shows in the row");
 

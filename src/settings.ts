@@ -3,7 +3,6 @@
  * statusline settings live in a small JSON at
  * ~/.pi/agent/pi-topping-statusline/settings.json.
  */
-import { ENTRY_TYPES } from "@underactive/pi-topping-primitives/contracts";
 import { createSettingsStore, sanitize, toppingSettingsPath, type SettingsWriteResult } from "@underactive/pi-topping-primitives/settings";
 import { clampCacheHitCells } from "./cache-hit.js";
 import { theme, type BorderStyle, type SymbolPreset } from "./theme.js";
@@ -28,12 +27,10 @@ export const BORDER_STYLES: readonly BorderStyle[] = ["rounded", "heavy", "doubl
 export const FEED_FORMATS: readonly FeedFormat[] = ["currency", "number", "text"];
 
 /**
- * Seeded with pi-topping-compact's published savings feed, so the segment works
- * as soon as it is switched on and doubles as a worked example of the shape.
+ * Nothing is subscribed by default: the list comes from the user's settings. The feeds
+ * segment renders nothing while the list is empty, so switching it on costs nothing.
  */
-export const DEFAULT_FEEDS: readonly StatusLineFeed[] = [
-	{ customType: ENTRY_TYPES.compactSavings, field: "savedUsd", prefix: "CS", format: "currency" },
-];
+export const DEFAULT_FEEDS: readonly StatusLineFeed[] = [];
 
 export const DEFAULT_SEGMENTS: Required<StatusLineSegmentToggles> = {
 	pi: true,

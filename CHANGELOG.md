@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- The feeds list no longer ships seeded with `pi-topping-compact/savings` (`CS`, currency). pi-topping-compact is a private extension that is being retired, so the default pointed at an entry nobody publishes. The list now starts empty and the segment renders nothing until a subscription is added; subscriptions already saved in `settings.json` are unaffected. Pass the first row's id as `feed.0` in anything that drives the settings menu by row id.
+
 ### Added
 
 - Add a logarithmic cache-hit graph (4 segments by default) before the context graph, following pi's `CH` figure (the latest response's hit rate) and computing it the same way when pi's stats line is unavailable; any hit above 0% fills the first cell, later cells fill at 50%, 87.5%, 96.9% and 99.2% (at 5 segments), and the whole bar takes one color from its hit-rate tier, with a 100% hit rate as good (subdued green)

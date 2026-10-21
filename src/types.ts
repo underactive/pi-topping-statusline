@@ -26,8 +26,8 @@ export type StatusLineSegmentId =
 
 /**
  * A feed the statusline subscribes to: custom session entries published by
- * another extension under `customType`, as pi-topping-compact does with
- * `ENTRY_TYPES.compactSavings`. `field` names the property of the entry's data
+ * another extension under `customType`, for example
+ * `pi.appendEntry("my-extension/savings", { savedUsd })`. `field` names the property of the entry's data
  * object to display, and `prefix` is the literal label drawn before it.
  */
 export interface StatusLineFeed {
@@ -38,9 +38,9 @@ export interface StatusLineFeed {
 }
 
 /**
- * currency keeps the rules pi-topping-compact's author specified for the savings
- * figure: a signed half-cent floor so this segment and that extension's own
- * footer never disagree, two decimals below $100 and whole dollars above.
+ * currency keeps the rules specified for the savings figure this format was written
+ * for (published by pi-topping-compact, a private extension): a signed half-cent
+ * floor, two decimals below $100 and whole dollars above.
  */
 export type FeedFormat = "currency" | "number" | "text";
 
