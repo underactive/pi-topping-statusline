@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The token-rate monitor's word counter, EMA tracker and hold/fade lifecycle, and the shared fade ease and shade count, now come from `@underactive/pi-topping-primitives` 0.3.0; no visible change
 - Adopt `@underactive/pi-topping-primitives` 0.1.0 for shared contracts; this adds a runtime dependency without changing event payloads
 - Move Pi's `CH` percentage beside the cache-hit graph and remove its redundant copy from Pi stats while the cache-hit bar is visible
+- Tested against pi 1.4.0
+- Bump `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`, and `@earendil-works/pi-tui` devDependencies to 1.4.0
 
 ### Fixed
 
