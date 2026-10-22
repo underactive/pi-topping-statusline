@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0]
+
 ### Removed
 
 - The feeds list no longer ships seeded with `pi-topping-compact/savings` (`CS`, currency). pi-topping-compact is a private extension that is being retired, so the default pointed at an entry nobody publishes. The list now starts empty and the segment renders nothing until a subscription is added; subscriptions already saved in `settings.json` are unaffected. Pass the first row's id as `feed.0` in anything that drives the settings menu by row id.
@@ -40,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The working-group fade now starts git indicators (`*N`, `+N`, `?N`) at the colour the terminal draws. Previously they started brighter: a faded `?N` could emit a truecolor channel above 255, and in 256-colour mode `?N` briefly turned green and `*N` gold. Fixed by `@underactive/pi-topping-primitives` 0.7.0.
 - The settings path is resolved on every call instead of once at import, so a `PI_CODING_AGENT_DIR` set after the module loads is honoured.
-- Seed the default savings feed with the type published by pi-topping-compact; saved settings retain their own feed list, so edit any saved `pi-prompt-cache/savings` row to use `pi-topping-compact/savings`
 - Restore the cache-hit bar to its position between Pi stats and the context graph in the bottom-right group; the persona-audit pass had silently moved it ahead of Pi stats
 
 ## [0.2.8]
